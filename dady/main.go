@@ -38,6 +38,7 @@ func main() {
 	if err = initDB(); err != nil {
 		log.Fatal(err)
 	}
+	startBot()
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.Dir("static")))
 	mux.HandleFunc("GET /api/services", listServices)
@@ -233,6 +234,7 @@ func bookH(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, _ := res.LastInsertId()
+	notify("Новая запись:\n" + brief(id))
 	rows(w, bookingSQL+` WHERE b.id=?`, id)
 }
 
@@ -270,6 +272,7 @@ func cancelH(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	db.Exec(`UPDATE bookings SET status='cancelled' WHERE id=?`, q.ID)
+	notify("Запись отменена:\n" + brief(int64(q.ID)))
 	js(w, 200, map[string]string{"ok": "запись отменена"})
 }
 
@@ -290,6 +293,7 @@ func moveH(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	db.Exec(`UPDATE bookings SET date=?,start=? WHERE id=?`, q.Date, start, q.ID)
+	notify("Запись перенесена:\n" + brief(int64(q.ID)))
 	js(w, 200, map[string]string{"ok": "запись перенесена"})
 }
 
