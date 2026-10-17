@@ -1,0 +1,19 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DADY — администратор</title><meta name="robots" content="noindex">
+<style>body{margin:0;background:#0e0e0e;color:#f6f4f0;font:15px Inter,system-ui,sans-serif;padding:24px}
+input,select,button{padding:10px;background:#232325;color:inherit;border:1px solid #3a3a3d;border-radius:2px;font:inherit}
+button{background:#c9b79c;color:#0e0e0e;cursor:pointer}table{border-collapse:collapse;width:100%;margin-top:20px}
+td,th{padding:10px;border-top:1px solid #3a3a3d;text-align:left}.e{color:#e0836f}</style></head><body>
+<h1>Записи</h1>
+<input id="pw" type="password" placeholder="Пароль администратора"> <input id="d" type="date"> <button id="go">Показать</button>
+<span id="e" class="e"></span><table><thead><tr><th>Дата</th><th>Время</th><th>Мастер</th><th>Услуга</th><th>Клиент</th><th>Статус</th></tr></thead><tbody id="t"></tbody></table>
+<script>
+const S={new:'новая',confirmed:'подтверждена',done:'завершена',cancelled:'отменена'};
+async function load(){const r=await fetch('/api/admin/bookings?date='+$d.value,{headers:{'X-Admin':$pw.value}});const j=await r.json();
+ $e.textContent=r.ok?'':j.error;if(!r.ok)return;
+ $t.innerHTML=j.map(b=>`<tr><td>${b.date}</td><td>${b.time}</td><td>${b.barber}</td><td>${b.service}</td><td>${b.name}<br>${b.phone}</td>
+ <td><select onchange="st(${b.id},this.value)">${Object.entries(S).map(([k,v])=>`<option value=${k} ${k==b.status?'selected':''}>${v}</option>`).join('')}</select></td></tr>`).join('')}
+async function st(id,status){await fetch('/api/admin/status',{method:'POST',headers:{'X-Admin':$pw.value},body:JSON.stringify({id,status})});load()}
+const $d=document.getElementById('d'),$pw=document.getElementById('pw'),$e=document.getElementById('e'),$t=document.getElementById('t');
+document.getElementById('go').onclick=load
+</script></body></html>
