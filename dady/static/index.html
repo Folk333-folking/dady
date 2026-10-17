@@ -25,9 +25,6 @@ nav a{margin-left:20px;text-decoration:none;color:#fff;font-size:14px}
 .hero .fill{position:absolute;inset:0;color:var(--sand);-webkit-mask:radial-gradient(circle 170px at var(--x) var(--y),#000 98%,transparent);mask:radial-gradient(circle 170px at var(--x) var(--y),#000 98%,transparent)}
 .hero p{max-width:420px;color:#aaa;margin:36px 0}
 .hint{position:absolute;bottom:24px;left:20px;color:#666;font-size:13px}
-.tape{border-block:1px solid var(--line);overflow:hidden;white-space:nowrap;padding:14px 0;background:var(--wine)}
-.tape div{display:inline-block;animation:run 28s linear infinite;font:600 15px Unbounded}
-.tape span{margin:0 26px}@keyframes run{to{transform:translateX(-50%)}}
 section{padding:90px 0}
 h2{font-size:clamp(30px,5vw,58px);margin-bottom:40px}
 .row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:22px 16px;border-top:1px solid var(--line);position:relative;overflow:hidden;transition:color .3s;cursor:default}
@@ -47,7 +44,7 @@ input,select{width:100%;padding:14px;background:#fff;color:var(--ink);border:1px
 .slots{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
 .slot{padding:11px 16px;border:1px solid #cfc8bb;background:#fff;color:var(--ink);cursor:pointer;border-radius:30px;font:500 15px Onest;transition:.2s}
 .slot:hover{border-color:var(--wine)}.slot[aria-pressed=true]{background:var(--ink);color:var(--sand);border-color:var(--ink);transform:scale(1.06)}
-#book .btn{background:var(--ink);color:var(--paper)}#book .btn:hover{background:var(--wine)}#book .btn.ghost{background:none;color:var(--ink);border:1px solid #bdb5a6}
+#book .btn,#my .btn{background:var(--ink);color:var(--paper)}#book .btn:hover,#my .btn:hover{background:var(--wine);color:var(--paper)}#book .btn.ghost,#my .btn.ghost{background:none;color:var(--ink);border:1px solid #bdb5a6}#my .btn.ghost:hover{background:var(--ink);color:var(--paper)}
 #msg{margin:14px 0;min-height:24px}.err{color:#b3261e}.ok{color:var(--wine)}
 .bk{padding:16px 0;border-top:1px solid #d9d2c5}.bk small{opacity:.6}.bk button{margin:8px 8px 0 0;padding:9px 16px;font-size:14px}
 .tg{display:inline-block;margin-top:18px;color:var(--wine);font-weight:600}
@@ -62,7 +59,7 @@ footer{background:var(--paper);color:var(--ink);padding:0 0 40px}footer .w{borde
 <span class="out" aria-hidden="true">Твой стиль.<br>Твои правила.</span><span class="fill" aria-hidden="true">Твой стиль.<br>Твои правила.</span></h1>
 <p>Барбершоп в Архангельске без спешки и навязанных услуг. Выберите мастера и время, остальное сделаем мы.</p>
 <a class="btn" href="#book">Записаться</a></div></div>
-<div class="tape" aria-hidden="true"><div id="tape"></div></div>
+
 
 <section id="price"><div class="w"><h2>Услуги</h2><div id="services"></div></div></section>
 <section id="team" style="background:var(--graph)"><div class="w"><h2>Мастера</h2><div class="team" id="barbers"></div></div></section>
@@ -102,7 +99,7 @@ $('#date').min=$('#md').min=iso(new Date());$('#date').value=iso(new Date())
 const hero=$('#hero');hero.addEventListener('pointermove',e=>{const r=hero.getBoundingClientRect();hero.style.setProperty('--x',e.clientX-r.left+'px');hero.style.setProperty('--y',e.clientY-r.top+'px')})
 async function init(){
  const [s,b]=await Promise.all([api('/api/services'),api('/api/barbers')]);
- $('#tape').innerHTML=[...s,...s,...s,...s].map(x=>`<span>${x.name}</span>`).join('');
+
  $('#services').innerHTML=s.map(x=>`<div class="row"><b>${x.name}</b><span>${x.price} ₽<small>${x.dur} мин</small></span></div>`).join('');
  $('#barbers').innerHTML=b.map(x=>`<div class="m"><i>${x.name[0]}</i><h3>${x.name}</h3><p>${x.spec}</p><p>Стаж ${x.years} лет</p></div>`).join('');
  $('#svc').innerHTML=s.map(x=>`<option value=${x.id}>${x.name} — ${x.price} ₽, ${x.dur} мин</option>`).join('');
