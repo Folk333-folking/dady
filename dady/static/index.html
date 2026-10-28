@@ -56,9 +56,10 @@ footer{background:var(--paper);color:var(--ink);padding:0 0 40px}footer .w{borde
 .mob{display:none}@media(max-width:760px){.mob{display:block;position:fixed;left:14px;right:14px;bottom:14px;z-index:9;text-align:center}body{padding-bottom:76px}.hero{cursor:default}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 input,select{min-height:48px}
+html,body{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none}
 @media(max-width:760px){
 section{padding:56px 0}h2{margin-bottom:28px}
-header .w{gap:12px}nav{display:flex;overflow-x:auto;white-space:nowrap;scrollbar-width:none}nav::-webkit-scrollbar{display:none}nav a{margin-left:16px;font-size:13px}
+header .w{flex-wrap:wrap;height:auto;padding-top:14px;padding-bottom:10px;gap:2px 0}nav{display:flex;flex-wrap:wrap;gap:0 18px;width:100%}nav a{margin:0;font-size:14px;padding:8px 0}nav a[href="#book"]{display:none}
 .hero{min-height:100svh}.hero .big{font-size:clamp(28px,8vw,56px)}.hero p{margin:24px 0}#nx{display:block;margin:12px 0 0}
 .row{flex-wrap:wrap;padding:18px 12px}
 .slot,.bk button{min-height:44px}
