@@ -48,6 +48,10 @@ input,select{width:100%;padding:14px;background:#fff;color:var(--ink);border:1px
 #msg{margin:14px 0;min-height:24px}.err{color:#b3261e}.ok{color:var(--wine)}
 .bk{padding:16px 0;border-top:1px solid #d9d2c5}.bk small{opacity:.6}.bk button{margin:8px 8px 0 0;padding:9px 16px;font-size:14px}
 .tg{display:inline-block;margin-top:18px;color:var(--wine);font-weight:600}
+textarea{width:100%;padding:14px;background:#fff;color:var(--ink);border:1px solid #cfc8bb;border-radius:12px;font:16px Onest}
+.rv{padding:20px 0;border-top:1px solid var(--line)}.rv b{color:var(--sand);letter-spacing:2px}.rv p{margin:8px 0 0;max-width:640px}.rv small{opacity:.6}
+.tip{margin-top:20px;padding-left:16px;border-left:3px solid var(--sand);color:#bbb}
+#nx{margin-left:12px}.loy{padding:14px 16px;border-radius:12px;background:#fff;margin:16px 0}
 footer{background:var(--paper);color:var(--ink);padding:0 0 40px}footer .w{border-top:1px solid #d9d2c5;padding-top:28px}
 .mob{display:none}@media(max-width:760px){.mob{display:block;position:fixed;left:14px;right:14px;bottom:14px;z-index:9;text-align:center}body{padding-bottom:76px}.hero{cursor:default}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
@@ -58,18 +62,19 @@ footer{background:var(--paper);color:var(--ink);padding:0 0 40px}footer .w{borde
 <div class="hero" id="hero"><div class="w"><h1 class="big" aria-label="Твой стиль. Твои правила.">
 <span class="out" aria-hidden="true">Твой стиль.<br>Твои правила.</span><span class="fill" aria-hidden="true">Твой стиль.<br>Твои правила.</span></h1>
 <p>Барбершоп в Архангельске без спешки и навязанных услуг. Выберите мастера и время, остальное сделаем мы.</p>
-<a class="btn" href="#book">Записаться</a></div></div>
+<a class="btn" href="#book">Записаться</a><button class="btn ghost" id="nx" type="button" hidden></button></div></div>
 
 
 <section id="price"><div class="w"><h2>Услуги</h2><div id="services"></div></div></section>
 <section id="team" style="background:var(--graph)"><div class="w"><h2>Мастера</h2><div class="team" id="barbers"></div></div></section>
-<section id="about"><div class="w cols"><h2>О DADY</h2><p style="font-size:19px">Мы за точную работу и спокойную атмосферу. Каждая стрижка начинается с разговора о том, как вы живёте и что вам идёт.</p></div></section>
+<section id="about"><div class="w cols"><h2>О DADY</h2><div><p style="font-size:19px">Мы за точную работу и спокойную атмосферу. Каждая стрижка начинается с разговора о том, как вы живёте и что вам идёт.</p><p class="tip" id="tip"></p></div></div></section>
+<section id="reviews" style="background:var(--graph)"><div class="w"><h2>Отзывы</h2><div id="rv-list"></div></div></section>
 
 <section id="book"><div class="w"><h2>Запись онлайн</h2>
 <form id="f" novalidate>
 <div class="st"><b>1</b><label for="svc">Услуга</label></div><select id="svc"></select>
 <div class="st"><b>2</b><label for="bar">Мастер</label></div><select id="bar"></select>
-<div class="st"><b>3</b><label for="date">Дата</label></div><input id="date" type="date">
+<div class="st"><b>3</b><label for="date">Дата</label></div><input id="date" type="date"><p style="margin:10px 0 0"><button class="btn ghost" id="near" type="button">Ближайшее свободное время</button></p>
 <div class="st"><b>4</b><span>Время</span></div><div class="slots" id="slots" role="group" aria-label="Время"></div>
 <div class="st"><b>5</b><label for="name">Имя и телефон</label></div>
 <input id="name" autocomplete="name" placeholder="Имя"><div style="height:10px"></div><input id="phone" type="tel" autocomplete="tel" placeholder="+7 900 000 00 00">
@@ -81,7 +86,11 @@ footer{background:var(--paper);color:var(--ink);padding:0 0 40px}footer .w{borde
 <p><button class="btn ghost" id="find" type="button">Показать записи</button></p></div>
 <div id="list"></div><div id="mv" class="box" hidden>
 <div class="st"><b>→</b><label for="md">Новая дата</label></div><input id="md" type="date"><div class="slots" id="ms"></div>
-<p><button class="btn" id="mgo" type="button">Перенести</button></p></div></div></section>
+<p><button class="btn" id="mgo" type="button">Перенести</button></p></div>
+<div id="rvbox" class="box" hidden><div class="st"><b>★</b><label for="rs">Оценка</label></div>
+<select id="rs"><option value=5>5 — отлично</option><option value=4>4 — хорошо</option><option value=3>3 — нормально</option><option value=2>2 — плохо</option><option value=1>1 — ужасно</option></select>
+<div style="height:10px"></div><textarea id="rt" rows="3" maxlength="500" placeholder="Что понравилось, что можно улучшить?"></textarea>
+<p><button class="btn" id="rgo" type="button">Отправить отзыв</button></p></div></div></section>
 
 <footer id="contacts"><div class="w cols"><div><h2 style="font-size:32px;color:var(--ink)">Контакты</h2></div>
 <div><p>Архангельск, пр. Чумбарова-Лучинского, 14<br>+7 (8182) 00-00-00<br>Ежедневно 10:00–21:00</p>
@@ -93,7 +102,8 @@ footer{background:var(--paper);color:var(--ink);padding:0 0 40px}footer .w{borde
 const $=s=>document.querySelector(s),api=async(u,o)=>{const r=await fetch(u,o);const j=await r.json();if(!r.ok)throw Error(j.error||'Ошибка');return j}
 const post=(u,b)=>api(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})
 const say=(t,c)=>{$('#msg').textContent=t;$('#msg').className=c||''}
-let time='',mid=0,mtime='';
+let time='',mid=0,mtime='',rbid=0;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 const iso=d=>new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)
 $('#date').min=$('#md').min=iso(new Date());$('#date').value=iso(new Date())
 const hero=$('#hero');hero.addEventListener('pointermove',e=>{const r=hero.getBoundingClientRect();hero.style.setProperty('--x',e.clientX-r.left+'px');hero.style.setProperty('--y',e.clientY-r.top+'px')})
@@ -101,26 +111,27 @@ async function init(){
  const [s,b]=await Promise.all([api('/api/services'),api('/api/barbers')]);
 
  $('#services').innerHTML=s.map(x=>`<div class="row"><b>${x.name}</b><span>${x.price} ₽<small>${x.dur} мин</small></span></div>`).join('');
- $('#barbers').innerHTML=b.map(x=>`<div class="m"><i>${x.name[0]}</i><h3>${x.name}</h3><p>${x.spec}</p><p>Стаж ${x.years} лет</p></div>`).join('');
+ $('#barbers').innerHTML=b.map(x=>`<div class="m"><i>${x.name[0]}</i><h3>${x.name}</h3><p>${x.spec}</p><p>Стаж ${x.years} лет</p>${x.reviews?`<p>★ ${x.rating} · отзывов: ${x.reviews}</p>`:''}</div>`).join('');
  $('#svc').innerHTML=s.map(x=>`<option value=${x.id}>${x.name} — ${x.price} ₽, ${x.dur} мин</option>`).join('');
  $('#bar').innerHTML='<option value=0>Любой свободный мастер</option>'+b.map(x=>`<option value=${x.id}>${x.name}</option>`).join('');
- slots()}
+ restore();slots();showNext();revs();tip()}
 async function loadSlots(el,q,pick){el.innerHTML='';
  try{const t=await api('/api/slots?'+q);if(!t.length){el.textContent='Свободного времени нет — выберите другую дату.';return}
  el.innerHTML=t.map(x=>`<button type="button" class="slot" aria-pressed="false">${x}</button>`).join('');
  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{el.querySelectorAll('button').forEach(o=>o.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');pick(b.textContent)})}
  catch(e){el.textContent=e.message}}
-function slots(){time='';loadSlots($('#slots'),`service=${$('#svc').value}&barber=${$('#bar').value}&date=${$('#date').value}`,t=>time=t)}
+function slots(){time='';return loadSlots($('#slots'),`service=${$('#svc').value}&barber=${$('#bar').value}&date=${$('#date').value}`,t=>time=t)}
 ['svc','bar','date'].forEach(i=>$('#'+i).onchange=slots)
 $('#f').onsubmit=async e=>{e.preventDefault();
  if(!time)return say('Выберите время','err');
  try{const [r]=await post('/api/book',{service:+$('#svc').value,barber:+$('#bar').value,date:$('#date').value,time,name:$('#name').value,phone:$('#phone').value});
-  $('#f').innerHTML=`<h3 class="big" style="font-size:30px;margin:24px 0">Вы записаны</h3><p>${r.service}<br>Мастер: ${r.barber}<br>${r.date}, ${r.time}</p><p class="ok">Изменить запись можно в разделе «Мои записи».</p>`}
+  save();$('#f').innerHTML=`<h3 class="big" style="font-size:30px;margin:24px 0">Вы записаны</h3><p>${r.service}<br>Мастер: ${r.barber}<br>${r.date}, ${r.time}</p><p class="ok">Изменить запись можно в разделе «Мои записи».</p>`}
  catch(e){say(e.message,'err');slots()}}
 const ST={new:'новая',confirmed:'подтверждена',done:'завершена',cancelled:'отменена'}
 async function find(){try{const l=await api('/api/my?phone='+encodeURIComponent($('#mp').value));
+ try{localStorage.dady_phone=$('#mp').value}catch(e){}
  $('#list').innerHTML=l.length?l.map(b=>`<div class="bk"><b>${b.service}</b> · ${b.barber}<br>${b.date}, ${b.time} <small>(${ST[b.status]})</small>
- ${['new','confirmed'].includes(b.status)?`<br><button class="btn ghost" onclick="cancel(${b.id})">Отменить</button><button class="btn ghost" onclick="startMove(${b.id})">Перенести</button>`:''}</div>`).join(''):'<p>Записей не найдено.</p>'}
+ ${['new','confirmed'].includes(b.status)?`<br><button class="btn ghost" onclick="cancel(${b.id})">Отменить</button><button class="btn ghost" onclick="startMove(${b.id})">Перенести</button>`:''}${b.status=='done'?`<br><button class="btn ghost" onclick="again(${b.sid},${b.bid})">Записаться снова</button>${b.reviewed?'':`<button class="btn ghost" onclick="startReview(${b.id})">Оставить отзыв</button>`}`:''}</div>`).join('')+loy(l):'<p>Записей не найдено.</p>'}
  catch(e){$('#list').innerHTML=`<p class="err">${e.message}</p>`}}
 $('#find').onclick=find
 async function cancel(id){if(!confirm('Отменить запись?'))return;
@@ -133,5 +144,30 @@ async function mslots(){const b=(await api('/api/my?phone='+encodeURIComponent($
 $('#md').onchange=mslots
 $('#mgo').onclick=async()=>{if(!mtime)return alert('Выберите время');
  try{await post('/api/move',{id:mid,phone:$('#mp').value,date:$('#md').value,time:mtime});$('#mv').hidden=true;find()}catch(e){alert(e.message);mslots()}}
+const DISC=5,DISC_TXT='скидка 15%'; // правила бонуса — поменяйте под себя
+function loy(l){const n=l.filter(b=>b.status=='done').length,k=DISC-1-n%DISC;
+ return `<div class="loy">Каждый ${DISC}-й визит — ${DISC_TXT}. Завершённых визитов: <b>${n}</b>. ${k?`До визита со скидкой: ещё ${k}.`:'Следующий визит — со скидкой!'}</div>`}
+function save(){try{localStorage.dady_name=$('#name').value;localStorage.dady_phone=$('#phone').value}catch(e){}}
+function restore(){try{$('#name').value=localStorage.dady_name||'';$('#phone').value=$('#mp').value=localStorage.dady_phone||'';if($('#mp').value)find()}catch(e){}}
+function again(sid,bid){$('#svc').value=sid;$('#bar').value=bid;slots();location.hash='#book'}
+async function nearest(){for(let i=0;i<14;i++){const d=new Date();d.setDate(d.getDate()+i);const ds=iso(d);
+ try{const t=await api(`/api/slots?service=${$('#svc').value}&barber=${$('#bar').value}&date=${ds}`);if(t.length)return{date:ds,time:t[0]}}catch(e){return null}}
+ return null}
+async function go(n){$('#date').value=n.date;await slots();[...document.querySelectorAll('#slots .slot')].find(b=>b.textContent==n.time)?.click();location.hash='#book'}
+async function showNext(){const n=await nearest(),b=$('#nx');if(!n)return;
+ b.textContent='Ближайшее окно: '+(n.date==iso(new Date())?'сегодня':n.date.slice(8)+'.'+n.date.slice(5,7))+', '+n.time;b.hidden=false;b.onclick=()=>go(n)}
+$('#near').onclick=async()=>{const n=await nearest();n?go(n):say('В ближайшие 2 недели свободного времени нет','err')}
+const TIPS=['не растирайте мокрые волосы полотенцем, лучше аккуратно промокните: так они меньше ломаются.',
+'сушите волосы феном по росту, а в конце пройдитесь холодным воздухом: укладка держится дольше.',
+'бороду лучше мыть специальным средством или мягким шампунем: обычное мыло сушит кожу.',
+'масло для бороды наносят на чистую, слегка влажную бороду, хватает пары капель.',
+'форму стрижки лучше обновлять раз в 3–4 недели, пока контур не расплылся.',
+'укладочное средство наносите на слегка влажные волосы, а не на мокрые.']
+function tip(){$('#tip').textContent='Совет дня: '+TIPS[Math.floor(Date.now()/864e5)%TIPS.length]}
+async function revs(){try{const r=await api('/api/reviews');
+ $('#rv-list').innerHTML=r.length?r.map(x=>`<div class="rv"><b>${'★'.repeat(x.stars)}${'☆'.repeat(5-x.stars)}</b> ${esc(x.name)}<small> · ${esc(x.barber)}, ${esc(x.date)}</small><p>${esc(x.text)}</p></div>`).join(''):'<p style="opacity:.6">Отзывов пока нет. После визита оставьте первый в разделе «Мои записи».</p>'}catch(e){}}
+function startReview(id){rbid=id;$('#rvbox').hidden=false;$('#rvbox').scrollIntoView({behavior:'smooth'})}
+$('#rgo').onclick=async()=>{try{await post('/api/review',{id:rbid,phone:$('#mp').value,stars:+$('#rs').value,text:$('#rt').value});
+ $('#rvbox').hidden=true;$('#rt').value='';find();revs();alert('Спасибо за отзыв!')}catch(e){alert(e.message)}}
 init()
 </script></body></html>
