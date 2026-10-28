@@ -10,7 +10,7 @@
 body{margin:0;background:var(--ink);color:var(--paper);font:16px/1.55 Onest,system-ui,sans-serif;overflow-x:hidden}
 h1,h2,.big{font-family:Unbounded,Impact,sans-serif;font-weight:800;line-height:1;margin:0}
 a{color:inherit}.w{max-width:1120px;margin:auto;padding:0 20px}
-header{position:fixed;top:0;left:0;right:0;z-index:9;mix-blend-mode:difference}
+header{position:absolute;top:0;left:0;right:0;z-index:9}
 header .w{display:flex;justify-content:space-between;align-items:center;height:64px}
 .logo{font:800 22px Unbounded;text-decoration:none;color:#fff}
 nav a{margin-left:20px;text-decoration:none;color:#fff;font-size:14px}
@@ -36,7 +36,7 @@ h2{font-size:clamp(30px,5vw,58px);margin-bottom:40px}
 .m:hover{transform:rotate(-1.5deg) translateY(-6px);background:var(--wine)}
 .m i{display:grid;place-items:center;width:92px;height:92px;border-radius:50%;background:var(--sand);color:var(--ink);font:800 38px Unbounded;font-style:normal;margin-bottom:60px}
 .m h3{margin:0;font:600 22px Unbounded}.m p{margin:6px 0 0;opacity:.7}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:48px}@media(max-width:760px){.cols{grid-template-columns:1fr}nav{display:none}}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:48px}@media(max-width:760px){.cols{grid-template-columns:1fr}}
 #book{background:var(--paper);color:var(--ink);border-radius:36px 36px 0 0}
 #book h2{color:var(--ink)}form,.box{max-width:560px}
 .st{display:flex;gap:14px;align-items:baseline;margin:26px 0 8px}.st b{font:800 28px Unbounded;color:var(--wine)}
@@ -55,6 +55,16 @@ textarea{width:100%;padding:14px;background:#fff;color:var(--ink);border:1px sol
 footer{background:var(--paper);color:var(--ink);padding:0 0 40px}footer .w{border-top:1px solid #d9d2c5;padding-top:28px}
 .mob{display:none}@media(max-width:760px){.mob{display:block;position:fixed;left:14px;right:14px;bottom:14px;z-index:9;text-align:center}body{padding-bottom:76px}.hero{cursor:default}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+input,select{min-height:48px}
+@media(max-width:760px){
+section{padding:56px 0}h2{margin-bottom:28px}
+header .w{gap:12px}nav{display:flex;overflow-x:auto;white-space:nowrap;scrollbar-width:none}nav::-webkit-scrollbar{display:none}nav a{margin-left:16px;font-size:13px}
+.hero{min-height:100svh}.hero .big{font-size:clamp(28px,8vw,56px)}.hero p{margin:24px 0}#nx{display:block;margin:12px 0 0}
+.row{flex-wrap:wrap;padding:18px 12px}
+.slot,.bk button{min-height:44px}
+.mob{bottom:calc(14px + env(safe-area-inset-bottom))}
+}
+@media(hover:none){.m:hover{transform:none;background:var(--graph)}.row:hover::before{transform:translateY(101%)}.row:hover{color:inherit}}
 </style></head><body>
 <header><div class="w"><a class="logo" href="#">DADY</a>
 <nav><a href="#price">Прайс</a><a href="#team">Мастера</a><a href="#my">Мои записи</a><a href="#contacts">Контакты</a><a href="#book">Записаться</a></nav></div></header>
