@@ -3,17 +3,57 @@
 <style>body{margin:0;background:#0e0e0e;color:#f6f4f0;font:15px Inter,system-ui,sans-serif;padding:24px}
 input,select,button{padding:10px;background:#232325;color:inherit;border:1px solid #3a3a3d;border-radius:2px;font:inherit}
 button{background:#c9b79c;color:#0e0e0e;cursor:pointer}table{border-collapse:collapse;width:100%;margin-top:20px}
-td,th{padding:10px;border-top:1px solid #3a3a3d;text-align:left}.e{color:#e0836f}</style></head><body>
+td,th{padding:10px;border-top:1px solid #3a3a3d;text-align:left}.e{color:#e0836f}
+h2{margin:48px 0 8px}.h{color:#9a9a9f;max-width:640px;margin:0 0 16px}.row{display:flex;flex-wrap:wrap;gap:8px}
+td button{padding:6px 12px}</style></head><body>
 <h1>Записи</h1>
 <input id="pw" type="password" placeholder="Пароль администратора"> <input id="d" type="date"> <button id="go">Показать</button>
-<span id="e" class="e"></span><table><thead><tr><th>Дата</th><th>Время</th><th>Мастер</th><th>Услуга</th><th>Клиент</th><th>Статус</th></tr></thead><tbody id="t"></tbody></table>
+<span id="e" class="e"></span>
+<table><thead><tr><th>Дата</th><th>Время</th><th>Мастер</th><th>Услуга</th><th>Клиент</th><th>Статус</th></tr></thead><tbody id="t"></tbody></table>
+
+<h2>Закрыть день или время</h2>
+<p class="h">Выходной, обед, отпуск мастера. Если «с» и «до» пустые, закроется весь день. Записи, которые уже есть на это время, не отменяются: перенесите или отмените их вручную.</p>
+<div class="row"><select id="bb"></select><input id="bd" type="date"><input id="bf" type="time" title="с"><input id="bt" type="time" title="до">
+<input id="bn" placeholder="Заметка (необязательно)"><button id="bgo">Закрыть</button></div>
+<table><thead><tr><th>Дата</th><th>Время</th><th>Мастер</th><th>Заметка</th><th></th></tr></thead><tbody id="bl"></tbody></table>
+
+<h2>Рабочие часы мастеров</h2>
+<p class="h">Запись возможна только в эти часы. По умолчанию у всех 10:00–21:00.</p>
+<table><thead><tr><th>Мастер</th><th>Начало</th><th>Конец</th><th></th></tr></thead><tbody id="hr"></tbody></table>
+
+<h2>Отзывы</h2>
+<p class="h">Отзыв может оставить только клиент с записью в статусе «завершена», поэтому после визита меняйте статус. Неподходящий отзыв можно удалить.</p>
+<table><thead><tr><th>Дата</th><th>Мастер</th><th>Оценка</th><th>Отзыв</th><th></th></tr></thead><tbody id="rv"></tbody></table>
+
 <script>
 const S={new:'новая',confirmed:'подтверждена',done:'завершена',cancelled:'отменена'};
-async function load(){const r=await fetch('/api/admin/bookings?date='+$d.value,{headers:{'X-Admin':$pw.value}});const j=await r.json();
- $e.textContent=r.ok?'':j.error;if(!r.ok)return;
- $t.innerHTML=j.map(b=>`<tr><td>${b.date}</td><td>${b.time}</td><td>${b.barber}</td><td>${b.service}</td><td>${b.name}<br>${b.phone}</td>
- <td><select onchange="st(${b.id},this.value)">${Object.entries(S).map(([k,v])=>`<option value=${k} ${k==b.status?'selected':''}>${v}</option>`).join('')}</select></td></tr>`).join('')}
-async function st(id,status){await fetch('/api/admin/status',{method:'POST',headers:{'X-Admin':$pw.value},body:JSON.stringify({id,status})});load()}
-const $d=document.getElementById('d'),$pw=document.getElementById('pw'),$e=document.getElementById('e'),$t=document.getElementById('t');
-document.getElementById('go').onclick=load
+const g=id=>document.getElementById(id),$d=g('d'),$pw=g('pw'),$e=g('e'),$t=g('t'),$bb=g('bb'),$bl=g('bl'),$hr=g('hr');
+const today=new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);$d.value=today;g('bd').value=today;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+async function call(u,body){
+ const r=await fetch(u,{method:body?'POST':'GET',headers:{'X-Admin':$pw.value},body:body?JSON.stringify(body):undefined});
+ const j=await r.json();$e.textContent=r.ok?'':j.error;if(!r.ok)throw Error(j.error);return j}
+async function load(){
+ try{const j=await call('/api/admin/bookings?date='+$d.value);
+  $t.innerHTML=j.map(b=>`<tr><td>${esc(b.date)}</td><td>${esc(b.time)}</td><td>${esc(b.barber)}</td><td>${esc(b.service)}</td><td>${esc(b.name)}<br>${esc(b.phone)}</td>
+  <td><select onchange="st(${+b.id},this.value)">${Object.entries(S).map(([k,v])=>`<option value=${k} ${k==b.status?'selected':''}>${v}</option>`).join('')}</select></td></tr>`).join('');
+  sched()}catch(e){}}
+async function st(id,status){await call('/api/admin/status',{id,status});load()}
+async function sched(){
+ try{const [b,k]=await Promise.all([fetch('/api/barbers').then(r=>r.json()),call('/api/admin/blocks')]);
+  const keep=$bb.value;
+  $bb.innerHTML='<option value=0>Все мастера</option>'+b.map(x=>`<option value=${+x.id}>${esc(x.name)}</option>`).join('');$bb.value=keep||0;
+  $bl.innerHTML=k.length?k.map(x=>`<tr><td>${esc(x.date)}</td><td>${x.from_min==0&&x.to_min==1440?'весь день':hm(x.from_min)+'–'+hm(x.to_min)}</td><td>${esc(x.barber)}</td><td>${esc(x.note)}</td>
+   <td><button onclick="unb(${+x.id})">Открыть</button></td></tr>`).join(''):'<tr><td colspan=5>Закрытых дней и часов нет.</td></tr>';
+  $hr.innerHTML=b.map(x=>`<tr><td>${esc(x.name)}</td><td><input type="time" id="o${+x.id}" value="${hm(x.open_min)}"></td>
+   <td><input type="time" id="c${+x.id}" value="${hm(x.close_min)}"></td><td><button onclick="hours(${+x.id})">Сохранить</button></td></tr>`).join('')
+ }catch(e){}}
+async function unb(id){try{await call('/api/admin/unblock',{id});sched()}catch(e){}}
+async function hours(id){try{await call('/api/admin/hours',{barber:id,open:g('o'+id).value,close:g('c'+id).value});sched()}catch(e){}}
+g('bgo').onclick=async()=>{try{await call('/api/admin/block',{barber:+$bb.value,date:g('bd').value,from:g('bf').value,to:g('bt').value,note:g('bn').value});g('bn').value='';sched()}catch(e){}}
+async function revs(){try{const r=await fetch('/api/reviews').then(x=>x.json());
+ g('rv').innerHTML=r.length?r.map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.barber)}</td><td>${'★'.repeat(x.stars)}</td><td>${esc(x.name)}: ${esc(x.text)}</td><td><button onclick="delrv(${+x.id})">Удалить</button></td></tr>`).join(''):'<tr><td colspan=5>Отзывов пока нет.</td></tr>'}catch(e){}}
+async function delrv(id){if(!confirm('Удалить отзыв?'))return;try{await call('/api/admin/review/delete',{id});revs()}catch(e){}}
+g('go').onclick=()=>{load();revs()}
 </script></body></html>
