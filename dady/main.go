@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -18,7 +19,7 @@ import (
 )
 
 const (
-	openMin  = 10 * 60 // 10:00
+	openMin  = 10 * 60 // 10:00 — часы по умолчанию (сайт берёт реальные из таблицы barbers)
 	closeMin = 21 * 60 // 21:00
 	stepMin  = 30
 )
@@ -54,6 +55,13 @@ func main() {
 	mux.HandleFunc("POST /api/move", moveH)
 	mux.HandleFunc("GET /api/admin/bookings", admin(adminList))
 	mux.HandleFunc("POST /api/admin/status", admin(adminStatus))
+	mux.HandleFunc("GET /api/admin/blocks", admin(adminBlocks))
+	mux.HandleFunc("POST /api/admin/block", admin(adminBlock))
+	mux.HandleFunc("POST /api/admin/unblock", admin(adminUnblock))
+	mux.HandleFunc("POST /api/admin/hours", admin(adminHours))
+	mux.HandleFunc("GET /api/reviews", reviewsH)
+	mux.HandleFunc("POST /api/review", reviewH)
+	mux.HandleFunc("POST /api/admin/review/delete", admin(adminReviewDelete))
 	addr := ":" + env("PORT", "8080")
 	log.Println("DADY on", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
@@ -72,11 +80,16 @@ CREATE TABLE IF NOT EXISTS services(id INTEGER PRIMARY KEY, name TEXT, price INT
 CREATE TABLE IF NOT EXISTS barbers(id INTEGER PRIMARY KEY, name TEXT, spec TEXT, years INT);
 CREATE TABLE IF NOT EXISTS bookings(id INTEGER PRIMARY KEY, service INT, barber INT, date TEXT, start INT, dur INT,
   name TEXT, phone TEXT, status TEXT DEFAULT 'new', created TEXT DEFAULT CURRENT_TIMESTAMP);
-CREATE INDEX IF NOT EXISTS ix_b ON bookings(barber, date);`)
+CREATE INDEX IF NOT EXISTS ix_b ON bookings(barber, date);
+CREATE TABLE IF NOT EXISTS blocks(id INTEGER PRIMARY KEY, barber INT DEFAULT 0, date TEXT, from_min INT, to_min INT, note TEXT);
+CREATE INDEX IF NOT EXISTS ix_blk ON blocks(date);
+CREATE TABLE IF NOT EXISTS reviews(id INTEGER PRIMARY KEY, booking INT UNIQUE, barber INT, name TEXT, stars INT, text TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);`)
 	if err != nil {
 		return err
 	}
 	db.Exec(`ALTER TABLE bookings ADD COLUMN chat INT`) // ошибка «колонка уже есть» нормальна
+	db.Exec(`ALTER TABLE barbers ADD COLUMN open_min INT DEFAULT 600`)   // рабочие часы мастера по умолчанию 10:00–21:00
+	db.Exec(`ALTER TABLE barbers ADD COLUMN close_min INT DEFAULT 1260`)
 	var n int
 	db.QueryRow(`SELECT COUNT(*) FROM services`).Scan(&n)
 	if n == 0 { // demo data
@@ -133,7 +146,8 @@ func rows(w http.ResponseWriter, q string, args ...any) {
 }
 
 func listServices(w http.ResponseWriter, _ *http.Request) { rows(w, `SELECT * FROM services`) }
-func listBarbers(w http.ResponseWriter, _ *http.Request)  { rows(w, `SELECT * FROM barbers`) }
+func listBarbers(w http.ResponseWriter, _ *http.Request)  { rows(w, `SELECT b.*, COALESCE((SELECT ROUND(AVG(stars),1) FROM reviews WHERE barber=b.id),0) AS rating,
+ (SELECT COUNT(*) FROM reviews WHERE barber=b.id) AS reviews FROM barbers b`) }
 
 // ---------- availability ----------
 func isFuture(date string, start int) bool {
@@ -149,16 +163,31 @@ func free(barber int, date string, start, dur, skip int) bool {
 	var n int
 	db.QueryRow(`SELECT COUNT(*) FROM bookings WHERE barber=? AND date=? AND status!='cancelled' AND id!=? AND start<? AND start+dur>?`,
 		barber, date, skip, start+dur, start).Scan(&n)
+	if n > 0 {
+		return false
+	}
+	// закрытое время: barber=0 значит «все мастера»
+	db.QueryRow(`SELECT COUNT(*) FROM blocks WHERE date=? AND barber IN(0,?) AND from_min<? AND to_min>?`,
+		date, barber, start+dur, start).Scan(&n)
 	return n == 0
+}
+
+// works reports whether [start,start+dur) fits into the barber's working hours.
+func works(barber, start, dur int) bool {
+	var o, c int
+	if db.QueryRow(`SELECT open_min,close_min FROM barbers WHERE id=?`, barber).Scan(&o, &c) != nil {
+		return false
+	}
+	return start >= o && start+dur <= c
 }
 
 // pick returns a free barber id (0 if none). barber>0 means a specific master.
 func pick(barber int, date string, start, dur, skip int) int {
-	if start < openMin || start+dur > closeMin || !isFuture(date, start) {
+	if !isFuture(date, start) {
 		return 0
 	}
 	if barber > 0 {
-		if free(barber, date, start, dur, skip) {
+		if works(barber, start, dur) && free(barber, date, start, dur, skip) {
 			return barber
 		}
 		return 0
@@ -172,7 +201,7 @@ func pick(barber int, date string, start, dur, skip int) int {
 	}
 	r.Close()
 	for _, id := range ids {
-		if free(id, date, start, dur, skip) {
+		if works(id, start, dur) && free(id, date, start, dur, skip) {
 			return id
 		}
 	}
@@ -193,8 +222,12 @@ func slotsH(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, "выберите услугу")
 		return
 	}
+	if _, e := time.Parse("2006-01-02", q.Get("date")); e != nil {
+		fail(w, 400, "выберите дату")
+		return
+	}
 	out := []string{}
-	for t := openMin; t+dur <= closeMin; t += stepMin {
+	for t := 0; t+dur <= 24*60; t += stepMin {
 		if pick(bid, q.Get("date"), t, dur, 0) > 0 {
 			out = append(out, hm(t))
 		}
@@ -251,7 +284,7 @@ func createBooking(svc, barber int, date, tm, name, phone string, chat int64) (i
 }
 
 const bookingSQL = `SELECT b.id,b.date,printf('%02d:%02d',b.start/60,b.start%60) AS time,b.status,b.name,b.phone,
- s.name AS service,s.price,br.name AS barber FROM bookings b JOIN services s ON s.id=b.service JOIN barbers br ON br.id=b.barber`
+ s.name AS service,s.price,br.name AS barber,b.service AS sid,b.barber AS bid,(SELECT COUNT(*) FROM reviews rv WHERE rv.booking=b.id) AS reviewed FROM bookings b JOIN services s ON s.id=b.service JOIN barbers br ON br.id=b.barber`
 
 func myH(w http.ResponseWriter, r *http.Request) {
 	p := cleanPhone(r.URL.Query().Get("phone"))
@@ -313,7 +346,7 @@ func moveH(w http.ResponseWriter, r *http.Request) {
 func admin(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pw := os.Getenv("ADMIN_PASSWORD")
-		if pw == "" || r.Header.Get("X-Admin") != pw {
+		if pw == "" || subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Admin")), []byte(pw)) != 1 {
 			fail(w, 401, "нет доступа")
 			return
 		}
@@ -343,4 +376,110 @@ func adminStatus(w http.ResponseWriter, r *http.Request) {
 	default:
 		fail(w, 400, "неизвестный статус")
 	}
+}
+
+// ---------- график: закрытые дни/часы и рабочие часы мастеров ----------
+func adminBlocks(w http.ResponseWriter, _ *http.Request) {
+	rows(w, `SELECT bl.id, bl.date, bl.from_min, bl.to_min, bl.note, COALESCE(br.name,'Все мастера') AS barber
+ FROM blocks bl LEFT JOIN barbers br ON br.id=bl.barber WHERE bl.date>=? ORDER BY bl.date, bl.from_min`,
+		time.Now().Format("2006-01-02"))
+}
+
+// adminBlock закрывает время. Пустые From/To — закрыть весь день. Barber=0 — все мастера.
+func adminBlock(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		Barber           int
+		Date, From, To, Note string
+	}
+	json.NewDecoder(r.Body).Decode(&q)
+	if _, err := time.Parse("2006-01-02", q.Date); err != nil {
+		fail(w, 400, "укажите дату")
+		return
+	}
+	f, t := 0, 24*60
+	if q.From != "" || q.To != "" {
+		var e1, e2 error
+		f, e1 = parseHM(q.From)
+		t, e2 = parseHM(q.To)
+		if e1 != nil || e2 != nil || t <= f {
+			fail(w, 400, "время «с» должно быть раньше времени «до»")
+			return
+		}
+	}
+	if _, err := db.Exec(`INSERT INTO blocks(barber,date,from_min,to_min,note) VALUES(?,?,?,?,?)`,
+		q.Barber, q.Date, f, t, strings.TrimSpace(q.Note)); err != nil {
+		fail(w, 500, "не удалось сохранить")
+		return
+	}
+	js(w, 200, map[string]string{"ok": "закрыто"})
+}
+
+func adminUnblock(w http.ResponseWriter, r *http.Request) {
+	var q struct{ ID int }
+	json.NewDecoder(r.Body).Decode(&q)
+	db.Exec(`DELETE FROM blocks WHERE id=?`, q.ID)
+	js(w, 200, map[string]string{"ok": "открыто"})
+}
+
+func adminHours(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		Barber      int
+		Open, Close string
+	}
+	json.NewDecoder(r.Body).Decode(&q)
+	o, e1 := parseHM(q.Open)
+	c, e2 := parseHM(q.Close)
+	if e1 != nil || e2 != nil || c <= o {
+		fail(w, 400, "начало работы должно быть раньше конца")
+		return
+	}
+	db.Exec(`UPDATE barbers SET open_min=?, close_min=? WHERE id=?`, o, c, q.Barber)
+	js(w, 200, map[string]string{"ok": "часы сохранены"})
+}
+
+// ---------- отзывы ----------
+func reviewsH(w http.ResponseWriter, _ *http.Request) {
+	rows(w, `SELECT r.id, r.name, r.stars, r.text, substr(r.created,1,10) AS date, br.name AS barber
+ FROM reviews r JOIN barbers br ON br.id=r.barber ORDER BY r.id DESC LIMIT 30`)
+}
+
+// reviewH: отзыв можно оставить только на завершённую запись и только один раз.
+func reviewH(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		ID, Stars   int
+		Phone, Text string
+	}
+	if json.NewDecoder(r.Body).Decode(&q) != nil || q.Stars < 1 || q.Stars > 5 {
+		fail(w, 400, "поставьте оценку от 1 до 5")
+		return
+	}
+	text := strings.TrimSpace(q.Text)
+	if len([]rune(text)) > 500 {
+		fail(w, 400, "отзыв не длиннее 500 символов")
+		return
+	}
+	var barber int
+	var name string
+	if db.QueryRow(`SELECT barber,name FROM bookings WHERE id=? AND phone=? AND status='done'`,
+		q.ID, cleanPhone(q.Phone)).Scan(&barber, &name) != nil {
+		fail(w, 400, "отзыв можно оставить только после завершённого визита")
+		return
+	}
+	first := "Гость" // показываем только имя, без фамилии и телефона
+	if f := strings.Fields(name); len(f) > 0 {
+		first = f[0]
+	}
+	if _, err := db.Exec(`INSERT INTO reviews(booking,barber,name,stars,text) VALUES(?,?,?,?,?)`,
+		q.ID, barber, first, q.Stars, text); err != nil {
+		fail(w, 409, "на этот визит отзыв уже оставлен")
+		return
+	}
+	js(w, 200, map[string]string{"ok": "спасибо за отзыв"})
+}
+
+func adminReviewDelete(w http.ResponseWriter, r *http.Request) {
+	var q struct{ ID int }
+	json.NewDecoder(r.Body).Decode(&q)
+	db.Exec(`DELETE FROM reviews WHERE id=?`, q.ID)
+	js(w, 200, map[string]string{"ok": "удалено"})
 }
