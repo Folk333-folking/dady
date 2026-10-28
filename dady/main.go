@@ -62,6 +62,12 @@ func main() {
 	mux.HandleFunc("GET /api/reviews", reviewsH)
 	mux.HandleFunc("POST /api/review", reviewH)
 	mux.HandleFunc("POST /api/admin/review/delete", admin(adminReviewDelete))
+	mux.HandleFunc("GET /api/products", productsH)
+	mux.HandleFunc("POST /api/reserve", reserveH)
+	mux.HandleFunc("GET /api/admin/reserves", admin(adminReserves))
+	mux.HandleFunc("POST /api/admin/reserve/status", admin(adminReserveStatus))
+	mux.HandleFunc("POST /api/admin/product", admin(adminProductAdd))
+	mux.HandleFunc("POST /api/admin/product/delete", admin(adminProductDel))
 	addr := ":" + env("PORT", "8080")
 	log.Println("DADY on", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
@@ -83,7 +89,9 @@ CREATE TABLE IF NOT EXISTS bookings(id INTEGER PRIMARY KEY, service INT, barber 
 CREATE INDEX IF NOT EXISTS ix_b ON bookings(barber, date);
 CREATE TABLE IF NOT EXISTS blocks(id INTEGER PRIMARY KEY, barber INT DEFAULT 0, date TEXT, from_min INT, to_min INT, note TEXT);
 CREATE INDEX IF NOT EXISTS ix_blk ON blocks(date);
-CREATE TABLE IF NOT EXISTS reviews(id INTEGER PRIMARY KEY, booking INT UNIQUE, barber INT, name TEXT, stars INT, text TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);`)
+CREATE TABLE IF NOT EXISTS reviews(id INTEGER PRIMARY KEY, booking INT UNIQUE, barber INT, name TEXT, stars INT, text TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY, name TEXT, descr TEXT, price INT);
+CREATE TABLE IF NOT EXISTS reserves(id INTEGER PRIMARY KEY, product INT, name TEXT, phone TEXT, status TEXT DEFAULT 'new', created TEXT DEFAULT CURRENT_TIMESTAMP);`)
 	if err != nil {
 		return err
 	}
@@ -481,5 +489,80 @@ func adminReviewDelete(w http.ResponseWriter, r *http.Request) {
 	var q struct{ ID int }
 	json.NewDecoder(r.Body).Decode(&q)
 	db.Exec(`DELETE FROM reviews WHERE id=?`, q.ID)
+	js(w, 200, map[string]string{"ok": "удалено"})
+}
+
+// ---------- товары и резерв «заберу при визите» ----------
+func productsH(w http.ResponseWriter, _ *http.Request) {
+	rows(w, `SELECT id,name,descr,price FROM products ORDER BY id`)
+}
+
+func reserveH(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		Product     int
+		Name, Phone string
+	}
+	json.NewDecoder(r.Body).Decode(&q)
+	phone, name := cleanPhone(q.Phone), strings.TrimSpace(q.Name)
+	if name == "" || !phoneRe.MatchString(phone) {
+		fail(w, 400, "укажите имя и корректный телефон (10–15 цифр)")
+		return
+	}
+	var pn string
+	if db.QueryRow(`SELECT name FROM products WHERE id=?`, q.Product).Scan(&pn) != nil {
+		fail(w, 400, "товар не найден")
+		return
+	}
+	var n int
+	db.QueryRow(`SELECT COUNT(*) FROM reserves WHERE phone=? AND status='new'`, phone).Scan(&n)
+	if n >= 5 {
+		fail(w, 429, "слишком много отложенных товаров — сначала заберите прежние")
+		return
+	}
+	if _, err := db.Exec(`INSERT INTO reserves(product,name,phone) VALUES(?,?,?)`, q.Product, name, phone); err != nil {
+		fail(w, 500, "не удалось сохранить")
+		return
+	}
+	notify("Резерв товара: " + pn + "\n" + name + ", " + phone)
+	js(w, 200, map[string]string{"ok": "товар отложен"})
+}
+
+func adminReserves(w http.ResponseWriter, _ *http.Request) {
+	rows(w, `SELECT r.id, r.name, r.phone, r.status, substr(r.created,1,10) AS date, COALESCE(p.name,'(удалён)') AS product
+ FROM reserves r LEFT JOIN products p ON p.id=r.product ORDER BY r.status='new' DESC, r.id DESC LIMIT 100`)
+}
+
+func adminReserveStatus(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		ID     int
+		Status string
+	}
+	json.NewDecoder(r.Body).Decode(&q)
+	if q.Status != "new" && q.Status != "done" && q.Status != "cancelled" {
+		fail(w, 400, "неизвестный статус")
+		return
+	}
+	db.Exec(`UPDATE reserves SET status=? WHERE id=?`, q.Status, q.ID)
+	js(w, 200, map[string]string{"ok": "обновлено"})
+}
+
+func adminProductAdd(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		Name, Descr string
+		Price       int
+	}
+	json.NewDecoder(r.Body).Decode(&q)
+	if strings.TrimSpace(q.Name) == "" || q.Price < 0 {
+		fail(w, 400, "укажите название и цену")
+		return
+	}
+	db.Exec(`INSERT INTO products(name,descr,price) VALUES(?,?,?)`, strings.TrimSpace(q.Name), strings.TrimSpace(q.Descr), q.Price)
+	js(w, 200, map[string]string{"ok": "добавлено"})
+}
+
+func adminProductDel(w http.ResponseWriter, r *http.Request) {
+	var q struct{ ID int }
+	json.NewDecoder(r.Body).Decode(&q)
+	db.Exec(`DELETE FROM products WHERE id=?`, q.ID)
 	js(w, 200, map[string]string{"ok": "удалено"})
 }
