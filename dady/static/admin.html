@@ -26,6 +26,13 @@ td button{padding:6px 12px}
 <p class="h">Отзыв может оставить только клиент с записью в статусе «завершена», поэтому после визита меняйте статус. Неподходящий отзыв можно удалить.</p>
 <table><thead><tr><th>Дата</th><th>Мастер</th><th>Оценка</th><th>Отзыв</th><th></th></tr></thead><tbody id="rv"></tbody></table>
 
+<h2>Товары</h2>
+<p class="h">Средства для ухода, которые клиент может отложить на сайте и забрать при визите. Пока товаров нет, блок «Товары» на сайте скрыт.</p>
+<div class="row"><input id="pn" placeholder="Название"><input id="pd" placeholder="Описание"><input id="pp" type="number" min="0" placeholder="Цена, ₽"><button id="pgo">Добавить</button></div>
+<table><thead><tr><th>Название</th><th>Описание</th><th>Цена</th><th></th></tr></thead><tbody id="pl"></tbody></table>
+<h2>Отложенные товары</h2>
+<table><thead><tr><th>Дата</th><th>Товар</th><th>Клиент</th><th>Статус</th></tr></thead><tbody id="rl"></tbody></table>
+
 <script>
 const S={new:'новая',confirmed:'подтверждена',done:'завершена',cancelled:'отменена'};
 const g=id=>document.getElementById(id),$d=g('d'),$pw=g('pw'),$e=g('e'),$t=g('t'),$bb=g('bb'),$bl=g('bl'),$hr=g('hr');
@@ -56,5 +63,11 @@ g('bgo').onclick=async()=>{try{await call('/api/admin/block',{barber:+$bb.value,
 async function revs(){try{const r=await fetch('/api/reviews').then(x=>x.json());
  g('rv').innerHTML=r.length?r.map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.barber)}</td><td>${'★'.repeat(x.stars)}</td><td>${esc(x.name)}: ${esc(x.text)}</td><td><button onclick="delrv(${+x.id})">Удалить</button></td></tr>`).join(''):'<tr><td colspan=5>Отзывов пока нет.</td></tr>'}catch(e){}}
 async function delrv(id){if(!confirm('Удалить отзыв?'))return;try{await call('/api/admin/review/delete',{id});revs()}catch(e){}}
-g('go').onclick=()=>{load();revs()}
+async function shop(){try{const [p,r]=await Promise.all([fetch('/api/products').then(x=>x.json()),call('/api/admin/reserves')]);
+ g('pl').innerHTML=p.length?p.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.descr)}</td><td>${+x.price} ₽</td><td><button onclick="delp(${+x.id})">Удалить</button></td></tr>`).join(''):'<tr><td colspan=4>Товаров нет, блок на сайте скрыт.</td></tr>';
+ g('rl').innerHTML=r.length?r.map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.product)}</td><td>${esc(x.name)}<br>${esc(x.phone)}</td><td><select onchange="rst(${+x.id},this.value)">${[['new','ждёт'],['done','выдан'],['cancelled','отменён']].map(([k,v])=>`<option value=${k} ${k==x.status?'selected':''}>${v}</option>`).join('')}</select></td></tr>`).join(''):'<tr><td colspan=4>Отложенных товаров нет.</td></tr>'}catch(e){}}
+async function rst(id,status){try{await call('/api/admin/reserve/status',{id,status});shop()}catch(e){}}
+async function delp(id){if(!confirm('Удалить товар?'))return;try{await call('/api/admin/product/delete',{id});shop()}catch(e){}}
+g('pgo').onclick=async()=>{try{await call('/api/admin/product',{name:g('pn').value,descr:g('pd').value,price:+g('pp').value});g('pn').value=g('pd').value=g('pp').value='';shop()}catch(e){}}
+g('go').onclick=()=>{load();revs();shop()}
 </script></body></html>

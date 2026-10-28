@@ -56,6 +56,10 @@ footer{background:var(--paper);color:var(--ink);padding:0 0 40px}footer .w{borde
 .mob{display:none}@media(max-width:760px){.mob{display:block;position:fixed;left:14px;right:14px;bottom:14px;z-index:9;text-align:center}body{padding-bottom:76px}.hero{cursor:default}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 input,select{min-height:48px}
+.qo{display:block;width:100%;text-align:left;margin:8px 0;padding:14px 18px;border:1px solid #cfc8bb;background:#fff;color:var(--ink);border-radius:14px;font:500 16px Onest;cursor:pointer}.qo:hover{border-color:var(--wine)}
+.qr{background:#fff;color:var(--ink);border-radius:20px;padding:24px;margin-top:16px}.qr h3{font:800 22px Unbounded;margin:0 0 10px}.qr .btn.ghost{color:var(--ink);border-color:#bdb5a6}.qr .btn.ghost:hover{color:var(--paper)}
+.care{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.care div{background:var(--ink);border-radius:18px;padding:22px}.care h3{margin:0 0 8px;font:600 18px Unbounded}.care p{margin:0;opacity:.8}
+.pr{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:18px 0;border-top:1px solid var(--line)}.pr p{margin:4px 0 0;opacity:.7}
 html,body{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none}
 @media(max-width:760px){
 section{padding:56px 0}h2{margin-bottom:28px}
@@ -68,7 +72,7 @@ header .w{flex-wrap:wrap;height:auto;padding-top:14px;padding-bottom:10px;gap:2p
 @media(hover:none){.m:hover{transform:none;background:var(--graph)}.row:hover::before{transform:translateY(101%)}.row:hover{color:inherit}}
 </style></head><body>
 <header><div class="w"><a class="logo" href="#">DADY</a>
-<nav><a href="#price">Прайс</a><a href="#team">Мастера</a><a href="#my">Мои записи</a><a href="#contacts">Контакты</a><a href="#book">Записаться</a></nav></div></header>
+<nav><a href="#price">Прайс</a><a href="#team">Мастера</a><a href="#quiz">Подбор</a><a href="#care">Уход</a><a href="#my">Мои записи</a><a href="#contacts">Контакты</a><a href="#book">Записаться</a></nav></div></header>
 
 <div class="hero" id="hero"><div class="w"><h1 class="big" aria-label="Твой стиль. Твои правила.">
 <span class="out" aria-hidden="true">Твой стиль.<br>Твои правила.</span><span class="fill" aria-hidden="true">Твой стиль.<br>Твои правила.</span></h1>
@@ -78,6 +82,18 @@ header .w{flex-wrap:wrap;height:auto;padding-top:14px;padding-bottom:10px;gap:2p
 
 <section id="price"><div class="w"><h2>Услуги</h2><div id="services"></div></div></section>
 <section id="team" style="background:var(--graph)"><div class="w"><h2>Мастера</h2><div class="team" id="barbers"></div></div></section>
+<section id="quiz"><div class="w"><h2>Подбери стрижку</h2><div id="qz" style="max-width:640px"></div></div></section>
+<section id="care" style="background:var(--graph)"><div class="w"><h2>Уход</h2><div class="care">
+<div><h3>Мытьё головы</h3><p>Шампунь наносите на кожу головы, кондиционер только по длине. Тёплая вода мягче для кожи, чем горячая.</p></div>
+<div><h3>Укладка</h3><p>Работайте со слегка влажными волосами, сушите по росту, в конце пройдитесь холодным воздухом: форма держится дольше.</p></div>
+<div><h3>Борода: мытьё</h3><p>Мойте бороду мягким шампунем или специальным средством пару раз в неделю. Обычное мыло сушит кожу.</p></div>
+<div><h3>Масло и бальзам</h3><p>Пара капель на чистую слегка влажную бороду и расчёска по росту волос. Так борода мягче и аккуратнее.</p></div>
+<div><h3>Бритьё</h3><p>Брейтесь по росту волос, в тёплой воде или после душа. Раздражение уменьшает бальзам после бритья без лишнего спирта.</p></div>
+<div><h3>Как часто стричься</h3><p>Короткие стрижки с переходами лучше обновлять раз в 3–4 недели, длинные раз в 6–8, чтобы форма не расплывалась.</p></div></div>
+<div id="shop" hidden><h2 style="margin-top:64px;font-size:clamp(24px,4vw,40px)">Товары</h2><div id="prods"></div>
+<div id="rsbox" class="qr" hidden><b id="rsn"></b><p style="margin:6px 0 14px">Отложим для вас, заберёте при визите. Оплата на месте.</p>
+<input id="rsname" placeholder="Имя"><div style="height:10px"></div><input id="rsphone" type="tel" placeholder="+7 900 000 00 00">
+<p><button class="btn" id="rsgo" type="button">Отложить</button></p></div></div></div></section>
 <section id="about"><div class="w cols"><h2>О DADY</h2><div><p style="font-size:19px">Мы за точную работу и спокойную атмосферу. Каждая стрижка начинается с разговора о том, как вы живёте и что вам идёт.</p><p class="tip" id="tip"></p></div></div></section>
 <section id="reviews" style="background:var(--graph)"><div class="w"><h2>Отзывы</h2><div id="rv-list"></div></div></section>
 
@@ -121,11 +137,11 @@ const hero=$('#hero');hero.addEventListener('pointermove',e=>{const r=hero.getBo
 async function init(){
  const [s,b]=await Promise.all([api('/api/services'),api('/api/barbers')]);
 
- $('#services').innerHTML=s.map(x=>`<div class="row"><b>${x.name}</b><span>${x.price} ₽<small>${x.dur} мин</small></span></div>`).join('');
+ SV=s;BR=b;qshow();$('#services').innerHTML=s.map(x=>`<div class="row"><b>${x.name}</b><span>${x.price} ₽<small>${x.dur} мин</small></span></div>`).join('');
  $('#barbers').innerHTML=b.map(x=>`<div class="m"><i>${x.name[0]}</i><h3>${x.name}</h3><p>${x.spec}</p><p>Стаж ${x.years} лет</p>${x.reviews?`<p>★ ${x.rating} · отзывов: ${x.reviews}</p>`:''}</div>`).join('');
  $('#svc').innerHTML=s.map(x=>`<option value=${x.id}>${x.name} — ${x.price} ₽, ${x.dur} мин</option>`).join('');
  $('#bar').innerHTML='<option value=0>Любой свободный мастер</option>'+b.map(x=>`<option value=${x.id}>${x.name}</option>`).join('');
- restore();slots();showNext();revs();tip()}
+ restore();slots();showNext();revs();tip();shop()}
 async function loadSlots(el,q,pick){el.innerHTML='';
  try{const t=await api('/api/slots?'+q);if(!t.length){el.textContent='Свободного времени нет — выберите другую дату.';return}
  el.innerHTML=t.map(x=>`<button type="button" class="slot" aria-pressed="false">${x}</button>`).join('');
@@ -180,5 +196,26 @@ async function revs(){try{const r=await api('/api/reviews');
 function startReview(id){rbid=id;$('#rvbox').hidden=false;$('#rvbox').scrollIntoView({behavior:'smooth'})}
 $('#rgo').onclick=async()=>{try{await post('/api/review',{id:rbid,phone:$('#mp').value,stars:+$('#rs').value,text:$('#rt').value});
  $('#rvbox').hidden=true;$('#rt').value='';find();revs();alert('Спасибо за отзыв!')}catch(e){alert(e.message)}}
+let SV=[],BR=[],qa=[],qi=0,qrec={},PR=[],rsp=0;
+const QZ=[['Какие у вас волосы?',['Прямые','Волнистые','Кудрявые','Густые и жёсткие']],
+['Форма лица?',['Овальное','Круглое','Квадратное','Вытянутое']],
+['Сколько времени на укладку утром?',['Почти нет','До 5 минут','Люблю повозиться']],
+['Что с бородой?',['Нет','Щетина','Борода']],
+['Чего хочется сегодня?',['Быстро и аккуратно','Сменить образ','Побаловать себя']]];
+const HAIR=['Прямые волосы хорошо держат чёткие линии.','Волнистые волосы лучше оставить чуть длиннее сверху, чтобы они лежали естественно.','Кудрявым волосам нужна длина и объём, мастер подберёт форму, чтобы кудри не топорщились.','Густые жёсткие волосы удобнее стричь короче по бокам, а сверху мастер уберёт лишний объём.'];
+const FACE=['Овальная форма принимает почти любую стрижку.','Круглое лицо визуально вытягивают объём сверху и короткие бока.','Квадратной линии челюсти идёт мягкая текстура сверху.','Вытянутому лицу обычно лучше подходят средняя длина по бокам и чёлка.'];
+function qshow(){const q=$('#qz');if(!q)return;
+ if(qi<QZ.length){q.innerHTML=`<p style="opacity:.6">Вопрос ${qi+1} из ${QZ.length}</p><h3 style="font:600 22px Unbounded;margin:0 0 14px">${QZ[qi][0]}</h3>`+QZ[qi][1].map((o,i)=>`<button class="qo" type="button" onclick="qpick(${i})">${o}</button>`).join('');return}
+ const [hair,face,time,beard,mood]=qa,nm=mood==2?'Комплексный уход':beard>0?'Стрижка + борода':(mood==0&&time==0)?'Стрижка машинкой':'Мужская стрижка';
+ const sv=SV.find(x=>x.name==nm)||SV[0],kw=mood==1?'Креатив':beard>0?'Борода':'Классик',br=BR.find(x=>String(x.spec).includes(kw));
+ qrec={svc:sv.id,bar:br?br.id:0};
+ q.innerHTML=`<div class="qr"><h3>${esc(sv.name)}</h3><p>${FACE[face]} ${HAIR[hair]}</p><p>${br?`Мастер: <b>${esc(br.name)}</b> (${esc(br.spec)}). `:''}Детали мастер уточнит на месте.</p>
+ <p><button class="btn" type="button" onclick="qbook()">Записаться</button> <button class="btn ghost" type="button" onclick="qa=[];qi=0;qshow()">Пройти заново</button></p></div>`}
+function qpick(i){qa[qi]=i;qi++;qshow()}
+function qbook(){$('#svc').value=qrec.svc;$('#bar').value=qrec.bar;slots();location.hash='#book'}
+async function shop(){try{PR=await api('/api/products');$('#shop').hidden=!PR.length;
+ $('#prods').innerHTML=PR.map(x=>`<div class="pr"><div><b>${esc(x.name)}</b><p>${esc(x.descr)}</p></div><div style="text-align:right;white-space:nowrap">${+x.price} ₽<br><button class="btn ghost" style="margin-top:8px" type="button" onclick="rsopen(${+x.id})">Забрать при визите</button></div></div>`).join('')}catch(e){}}
+function rsopen(id){rsp=id;$('#rsn').textContent=PR.find(y=>y.id==id).name;$('#rsname').value=$('#name').value;$('#rsphone').value=$('#phone').value;$('#rsbox').hidden=false;$('#rsbox').scrollIntoView({behavior:'smooth',block:'center'})}
+$('#rsgo').onclick=async()=>{try{await post('/api/reserve',{product:rsp,name:$('#rsname').value,phone:$('#rsphone').value});$('#rsbox').hidden=true;alert('Отложили. Заберёте при визите.')}catch(e){alert(e.message)}}
 init()
 </script></body></html>
