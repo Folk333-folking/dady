@@ -5,71 +5,705 @@
 <meta name="description" content="Барбершоп DADY в Архангельске: стрижки, борода, уход. Запишитесь онлайн или в Telegram.">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#0b0b0c;--graph:#1d1d20;--line:#34343a;--paper:#f3efe8;--sand:#cdb995;--wine:#7a1f2e}
-*{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;background:var(--ink);color:var(--paper);font:16px/1.55 Onest,system-ui,sans-serif;overflow-x:hidden}
-h1,h2,.big{font-family:Unbounded,Impact,sans-serif;font-weight:800;line-height:1;margin:0}
-a{color:inherit}.w{max-width:1120px;margin:auto;padding:0 20px}
-header{position:absolute;top:0;left:0;right:0;z-index:9}
-header .w{display:flex;justify-content:space-between;align-items:center;height:64px}
-.logo{font:800 22px Unbounded;text-decoration:none;color:#fff}
-nav a{margin-left:20px;text-decoration:none;color:#fff;font-size:14px}
-.btn{display:inline-block;border:0;background:var(--sand);color:var(--ink);font:600 15px Onest;padding:15px 28px;border-radius:40px;cursor:pointer;text-decoration:none;transition:.25s}
-.btn:hover{background:var(--wine);color:var(--paper);transform:translateY(-2px)}.btn.ghost{background:none;color:var(--paper);border:1px solid var(--line)}
-.btn:focus-visible,input:focus-visible,select:focus-visible,.slot:focus-visible{outline:2px solid var(--sand);outline-offset:3px}
-/* hero: курсор — «машинка», стирающая контур и открывающая цвет */
-.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;position:relative;--x:50%;--y:50%;cursor:crosshair}
-.hero .big{font-size:clamp(46px,10.5vw,150px);position:relative}
-.hero .big span{display:block}
-.hero .out{color:transparent;-webkit-text-stroke:1.5px #55555c}
-.hero .fill{position:absolute;inset:0;color:var(--sand);-webkit-mask:radial-gradient(circle 170px at var(--x) var(--y),#000 98%,transparent);mask:radial-gradient(circle 170px at var(--x) var(--y),#000 98%,transparent)}
-.hero p{max-width:420px;color:#aaa;margin:36px 0}
-.hint{position:absolute;bottom:24px;left:20px;color:#666;font-size:13px}
-section{padding:90px 0}
-h2{font-size:clamp(30px,5vw,58px);margin-bottom:40px}
-.row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:22px 16px;border-top:1px solid var(--line);position:relative;overflow:hidden;transition:color .3s;cursor:default}
-.row::before{content:"";position:absolute;inset:0;background:var(--sand);transform:translateY(101%);transition:transform .35s;z-index:0}
-.row:hover::before,.row:focus-within::before{transform:none}.row:hover{color:var(--ink)}
-.row>*{position:relative;z-index:1}.row b{font:600 clamp(18px,3vw,30px) Unbounded}.row small{opacity:.6;margin-left:12px}
-.team{display:flex;gap:16px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x mandatory}
-.m{flex:0 0 min(280px,78vw);scroll-snap-align:start;background:var(--graph);border-radius:20px;padding:28px;transition:transform .3s,background .3s}
-.m:hover{transform:rotate(-1.5deg) translateY(-6px);background:var(--wine)}
-.m i{display:grid;place-items:center;width:92px;height:92px;border-radius:50%;background:var(--sand);color:var(--ink);font:800 38px Unbounded;font-style:normal;margin-bottom:60px}
-.m h3{margin:0;font:600 22px Unbounded}.m p{margin:6px 0 0;opacity:.7}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:48px}@media(max-width:760px){.cols{grid-template-columns:1fr}}
-#book{background:var(--paper);color:var(--ink);border-radius:36px 36px 0 0}
-#book h2{color:var(--ink)}form,.box{max-width:560px}
-.st{display:flex;gap:14px;align-items:baseline;margin:26px 0 8px}.st b{font:800 28px Unbounded;color:var(--wine)}
-input,select{width:100%;padding:14px;background:#fff;color:var(--ink);border:1px solid #cfc8bb;border-radius:12px;font:16px Onest}
-.slots{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
-.slot{padding:11px 16px;border:1px solid #cfc8bb;background:#fff;color:var(--ink);cursor:pointer;border-radius:30px;font:500 15px Onest;transition:.2s}
-.slot:hover{border-color:var(--wine)}.slot[aria-pressed=true]{background:var(--ink);color:var(--sand);border-color:var(--ink);transform:scale(1.06)}
-#book .btn,#my .btn{background:var(--ink);color:var(--paper)}#book .btn:hover,#my .btn:hover{background:var(--wine);color:var(--paper)}#book .btn.ghost,#my .btn.ghost{background:none;color:var(--ink);border:1px solid #bdb5a6}#my .btn.ghost:hover{background:var(--ink);color:var(--paper)}
-#msg{margin:14px 0;min-height:24px}.err{color:#b3261e}.ok{color:var(--wine)}
-.bk{padding:16px 0;border-top:1px solid #d9d2c5}.bk small{opacity:.6}.bk button{margin:8px 8px 0 0;padding:9px 16px;font-size:14px}
-.tg{display:inline-block;margin-top:18px;color:var(--wine);font-weight:600}
-textarea{width:100%;padding:14px;background:#fff;color:var(--ink);border:1px solid #cfc8bb;border-radius:12px;font:16px Onest}
-.rv{padding:20px 0;border-top:1px solid var(--line)}.rv b{color:var(--sand);letter-spacing:2px}.rv p{margin:8px 0 0;max-width:640px}.rv small{opacity:.6}
-.tip{margin-top:20px;padding-left:16px;border-left:3px solid var(--sand);color:#bbb}
-#nx{margin-left:12px}.loy{padding:14px 16px;border-radius:12px;background:#fff;margin:16px 0}
-footer{background:var(--paper);color:var(--ink);padding:0 0 40px}footer .w{border-top:1px solid #d9d2c5;padding-top:28px}
-.mob{display:none}@media(max-width:760px){.mob{display:block;position:fixed;left:14px;right:14px;bottom:14px;z-index:9;text-align:center}body{padding-bottom:76px}.hero{cursor:default}}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-input,select{min-height:48px}
-.qo{display:block;width:100%;text-align:left;margin:8px 0;padding:14px 18px;border:1px solid #cfc8bb;background:#fff;color:var(--ink);border-radius:14px;font:500 16px Onest;cursor:pointer}.qo:hover{border-color:var(--wine)}
-.qr{background:#fff;color:var(--ink);border-radius:20px;padding:24px;margin-top:16px}.qr h3{font:800 22px Unbounded;margin:0 0 10px}.qr .btn.ghost{color:var(--ink);border-color:#bdb5a6}.qr .btn.ghost:hover{color:var(--paper)}
-.care{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.care div{background:var(--ink);border-radius:18px;padding:22px}.care h3{margin:0 0 8px;font:600 18px Unbounded}.care p{margin:0;opacity:.8}
-.pr{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:18px 0;border-top:1px solid var(--line)}.pr p{margin:4px 0 0;opacity:.7}
-html,body{overflow-x:hidden;max-width:100%;overscroll-behavior-x:none}
-@media(max-width:760px){
-section{padding:56px 0}h2{margin-bottom:28px}
-header .w{flex-wrap:wrap;height:auto;padding-top:14px;padding-bottom:10px;gap:2px 0}nav{display:flex;flex-wrap:wrap;gap:0 18px;width:100%}nav a{margin:0;font-size:14px;padding:8px 0}nav a[href="#book"]{display:none}
-.hero{min-height:100svh}.hero .big{font-size:clamp(28px,8vw,56px)}.hero p{margin:24px 0}#nx{display:block;margin:12px 0 0}
-.row{flex-wrap:wrap;padding:18px 12px}
-.slot,.bk button{min-height:44px}
-.mob{bottom:calc(14px + env(safe-area-inset-bottom))}
+:root {
+  --ink: #0b0b0c;
+  --graph: #1d1d20;
+  --line: #34343a;
+  --paper: #f3efe8;
+  --sand: #cdb995;
+  --wine: #7a1f2e;
 }
-@media(hover:none){.m:hover{transform:none;background:var(--graph)}.row:hover::before{transform:translateY(101%)}.row:hover{color:inherit}}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font: 16px/1.55 Onest,system-ui,sans-serif;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+.big {
+  font-family: Unbounded,Impact,sans-serif;
+  font-weight: 800;
+  line-height: 1;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+.w {
+  max-width: 1120px;
+  margin: auto;
+  padding: 0 20px;
+}
+
+header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9;
+}
+
+header .w {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 64px;
+}
+
+.logo {
+  font: 800 22px Unbounded;
+  text-decoration: none;
+  color: #fff;
+}
+
+nav a {
+  margin-left: 20px;
+  text-decoration: none;
+  color: #fff;
+  font-size: 14px;
+}
+
+.btn {
+  display: inline-block;
+  border: 0;
+  background: var(--sand);
+  color: var(--ink);
+  font: 600 15px Onest;
+  padding: 15px 28px;
+  border-radius: 40px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: .25s;
+}
+
+.btn:hover {
+  background: var(--wine);
+  color: var(--paper);
+  transform: translateY(-2px);
+}
+
+.btn.ghost {
+  background: none;
+  color: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.btn:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.slot:focus-visible {
+  outline: 2px solid var(--sand);
+  outline-offset: 3px;
+}
+
+/* hero: курсор — «машинка», стирающая контур и открывающая цвет */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  --x: 50%;
+  --y: 50%;
+  cursor: crosshair;
+}
+
+.hero .big {
+  font-size: clamp(46px,10.5vw,150px);
+  position: relative;
+}
+
+.hero .big span {
+  display: block;
+}
+
+.hero .out {
+  color: transparent;
+  -webkit-text-stroke: 1.5px #55555c;
+}
+
+.hero .fill {
+  position: absolute;
+  inset: 0;
+  color: var(--sand);
+  -webkit-mask: radial-gradient(circle 170px at var(--x) var(--y),#000 98%,transparent);
+  mask: radial-gradient(circle 170px at var(--x) var(--y),#000 98%,transparent);
+}
+
+.hero p {
+  max-width: 420px;
+  color: #aaa;
+  margin: 36px 0;
+}
+
+.hint {
+  position: absolute;
+  bottom: 24px;
+  left: 20px;
+  color: #666;
+  font-size: 13px;
+}
+
+section {
+  padding: 90px 0;
+}
+
+h2 {
+  font-size: clamp(30px,5vw,58px);
+  margin-bottom: 40px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 22px 16px;
+  border-top: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+  transition: color .3s;
+  cursor: default;
+}
+
+.row::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--sand);
+  transform: translateY(101%);
+  transition: transform .35s;
+  z-index: 0;
+}
+
+.row:hover::before,
+.row:focus-within::before {
+  transform: none;
+}
+
+.row:hover {
+  color: var(--ink);
+}
+
+.row>* {
+  position: relative;
+  z-index: 1;
+}
+
+.row b {
+  font: 600 clamp(18px,3vw,30px) Unbounded;
+}
+
+.row small {
+  opacity: .6;
+  margin-left: 12px;
+}
+
+.team {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scroll-snap-type: x mandatory;
+}
+
+.m {
+  flex: 0 0 min(280px,78vw);
+  scroll-snap-align: start;
+  background: var(--graph);
+  border-radius: 20px;
+  padding: 28px;
+  transition: transform .3s,background .3s;
+}
+
+.m:hover {
+  transform: rotate(-1.5deg) translateY(-6px);
+  background: var(--wine);
+}
+
+.m i {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: var(--sand);
+  color: var(--ink);
+  font: 800 38px Unbounded;
+  font-style: normal;
+  margin-bottom: 60px;
+}
+
+.m h3 {
+  margin: 0;
+  font: 600 22px Unbounded;
+}
+
+.m p {
+  margin: 6px 0 0;
+  opacity: .7;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+}
+
+@media (max-width: 760px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+#book {
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 36px 36px 0 0;
+}
+
+#book h2 {
+  color: var(--ink);
+}
+
+form,
+.box {
+  max-width: 560px;
+}
+
+.st {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  margin: 26px 0 8px;
+}
+
+.st b {
+  font: 800 28px Unbounded;
+  color: var(--wine);
+}
+
+input,
+select {
+  width: 100%;
+  padding: 14px;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid #cfc8bb;
+  border-radius: 12px;
+  font: 16px Onest;
+}
+
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.slot {
+  padding: 11px 16px;
+  border: 1px solid #cfc8bb;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 30px;
+  font: 500 15px Onest;
+  transition: .2s;
+}
+
+.slot:hover {
+  border-color: var(--wine);
+}
+
+.slot[aria-pressed=true] {
+  background: var(--ink);
+  color: var(--sand);
+  border-color: var(--ink);
+  transform: scale(1.06);
+}
+
+#book .btn,
+#my .btn {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+#book .btn:hover,
+#my .btn:hover {
+  background: var(--wine);
+  color: var(--paper);
+}
+
+#book .btn.ghost,
+#my .btn.ghost {
+  background: none;
+  color: var(--ink);
+  border: 1px solid #bdb5a6;
+}
+
+#my .btn.ghost:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+#msg {
+  margin: 14px 0;
+  min-height: 24px;
+}
+
+.err {
+  color: #b3261e;
+}
+
+.ok {
+  color: var(--wine);
+}
+
+.bk {
+  padding: 16px 0;
+  border-top: 1px solid #d9d2c5;
+}
+
+.bk small {
+  opacity: .6;
+}
+
+.bk button {
+  margin: 8px 8px 0 0;
+  padding: 9px 16px;
+  font-size: 14px;
+}
+
+.tg {
+  display: inline-block;
+  margin-top: 18px;
+  color: var(--wine);
+  font-weight: 600;
+}
+
+textarea {
+  width: 100%;
+  padding: 14px;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid #cfc8bb;
+  border-radius: 12px;
+  font: 16px Onest;
+}
+
+.rv {
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+}
+
+.rv b {
+  color: var(--sand);
+  letter-spacing: 2px;
+}
+
+.rv p {
+  margin: 8px 0 0;
+  max-width: 640px;
+}
+
+.rv small {
+  opacity: .6;
+}
+
+.tip {
+  margin-top: 20px;
+  padding-left: 16px;
+  border-left: 3px solid var(--sand);
+  color: #bbb;
+}
+
+#nx {
+  margin-left: 12px;
+}
+
+.loy {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff;
+  margin: 16px 0;
+}
+
+footer {
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0 0 40px;
+}
+
+footer .w {
+  border-top: 1px solid #d9d2c5;
+  padding-top: 28px;
+}
+
+.mob {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .mob {
+    display: block;
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    z-index: 9;
+    text-align: center;
+  }
+  body {
+    padding-bottom: 76px;
+  }
+  .hero {
+    cursor: default;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none!important;
+    transition: none!important;
+    scroll-behavior: auto!important;
+  }
+}
+
+input,
+select {
+  min-height: 48px;
+}
+
+.qo {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 8px 0;
+  padding: 14px 18px;
+  border: 1px solid #cfc8bb;
+  background: #fff;
+  color: var(--ink);
+  border-radius: 14px;
+  font: 500 16px Onest;
+  cursor: pointer;
+}
+
+.qo:hover {
+  border-color: var(--wine);
+}
+
+.qr {
+  background: #fff;
+  color: var(--ink);
+  border-radius: 20px;
+  padding: 24px;
+  margin-top: 16px;
+}
+
+.qr h3 {
+  font: 800 22px Unbounded;
+  margin: 0 0 10px;
+}
+
+.qr .btn.ghost {
+  color: var(--ink);
+  border-color: #bdb5a6;
+}
+
+.qr .btn.ghost:hover {
+  color: var(--paper);
+}
+
+.care {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
+  gap: 16px;
+}
+
+.cos {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink);
+  border-radius: 18px;
+  padding: 22px;
+  text-align: center;
+}
+
+.cos h3 {
+  margin: 14px 0 8px;
+  font: 600 18px Unbounded;
+}
+
+.cos p {
+  margin: 0;
+  opacity: .75;
+}
+
+.stage {
+  display: grid;
+  place-items: center;
+  height: 170px;
+  border-radius: 14px;
+  background: radial-gradient(circle at 50% 70%,rgba(205,185,149,.22),transparent 65%);
+  transition: transform .4s cubic-bezier(.2,.8,.2,1);
+}
+
+.bottle {
+  width: 96px;
+  height: 135px;
+  filter: drop-shadow(0 14px 14px rgba(0,0,0,.6));
+  animation: float 4.5s ease-in-out infinite;
+  animation-delay: calc(var(--i)*-.7s);
+}
+
+.cos:hover .stage {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+.cos::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);
+  transform: skewX(-20deg);
+}
+
+.cos:hover::after {
+  animation: shine .9s;
+}
+
+.js .cos {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .6s,transform .6s;
+}
+
+.js .cos.in {
+  opacity: 1;
+  transform: none;
+  transition-delay: calc(var(--i)*90ms);
+}
+
+@keyframes float {
+  0%,100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(2deg);
+  }
+}
+
+@keyframes shine {
+  to {
+    left: 130%;
+  }
+}
+
+.pr {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+
+.pr p {
+  margin: 4px 0 0;
+  opacity: .7;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+  overscroll-behavior-x: none;
+}
+
+@media (max-width: 760px) {
+  section {
+    padding: 56px 0;
+  }
+  h2 {
+    margin-bottom: 28px;
+  }
+  header .w {
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: 14px;
+    padding-bottom: 10px;
+    gap: 2px 0;
+  }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 18px;
+    width: 100%;
+  }
+  nav a {
+    margin: 0;
+    font-size: 14px;
+    padding: 8px 0;
+  }
+  nav a[href="#book"] {
+    display: none;
+  }
+  .hero {
+    min-height: 100svh;
+  }
+  .hero .big {
+    font-size: clamp(28px,8vw,56px);
+  }
+  .hero p {
+    margin: 24px 0;
+  }
+  #nx {
+    display: block;
+    margin: 12px 0 0;
+  }
+  .row {
+    flex-wrap: wrap;
+    padding: 18px 12px;
+  }
+  .slot,
+  .bk button {
+    min-height: 44px;
+  }
+  .mob {
+    bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (hover: none) {
+  .m:hover {
+    transform: none;
+    background: var(--graph);
+  }
+  .row:hover::before {
+    transform: translateY(101%);
+  }
+  .row:hover {
+    color: inherit;
+  }
+}
 </style></head><body>
 <header><div class="w"><a class="logo" href="#">DADY</a>
 <nav><a href="#price">Прайс</a><a href="#team">Мастера</a><a href="#quiz">Подбор</a><a href="#care">Уход</a><a href="#my">Мои записи</a><a href="#contacts">Контакты</a><a href="#book">Записаться</a></nav></div></header>
@@ -84,12 +718,34 @@ header .w{flex-wrap:wrap;height:auto;padding-top:14px;padding-bottom:10px;gap:2p
 <section id="team" style="background:var(--graph)"><div class="w"><h2>Мастера</h2><div class="team" id="barbers"></div></div></section>
 <section id="quiz"><div class="w"><h2>Подбери стрижку</h2><div id="qz" style="max-width:640px"></div></div></section>
 <section id="care" style="background:var(--graph)"><div class="w"><h2>Уход</h2><div class="care">
-<div><h3>Мытьё головы</h3><p>Шампунь наносите на кожу головы, кондиционер только по длине. Тёплая вода мягче для кожи, чем горячая.</p></div>
-<div><h3>Укладка</h3><p>Работайте со слегка влажными волосами, сушите по росту, в конце пройдитесь холодным воздухом: форма держится дольше.</p></div>
-<div><h3>Борода: мытьё</h3><p>Мойте бороду мягким шампунем или специальным средством пару раз в неделю. Обычное мыло сушит кожу.</p></div>
-<div><h3>Масло и бальзам</h3><p>Пара капель на чистую слегка влажную бороду и расчёска по росту волос. Так борода мягче и аккуратнее.</p></div>
-<div><h3>Бритьё</h3><p>Брейтесь по росту волос, в тёплой воде или после душа. Раздражение уменьшает бальзам после бритья без лишнего спирта.</p></div>
-<div><h3>Как часто стричься</h3><p>Короткие стрижки с переходами лучше обновлять раз в 3–4 недели, длинные раз в 6–8, чтобы форма не расплывалась.</p></div></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="b-shampoo" viewBox="0 0 100 140"><g fill="#151517" stroke="#4d4d54" stroke-width="1.5">
+<rect x="38" y="10" width="24" height="18" rx="5"/><rect x="28" y="26" width="44" height="106" rx="14"/>
+<rect x="34" y="34" width="6" height="90" rx="3" fill="#fff" fill-opacity=".14" stroke="none"/><rect x="44" y="62" width="22" height="40" rx="4" fill="none" stroke="#cdb995" stroke-opacity=".55"/></g></symbol>
+<symbol id="b-balm" viewBox="0 0 100 140"><g fill="#151517" stroke="#4d4d54" stroke-width="1.5">
+<rect x="34" y="30" width="32" height="14" rx="4"/><rect x="22" y="42" width="56" height="90" rx="16"/>
+<rect x="28" y="50" width="6" height="74" rx="3" fill="#fff" fill-opacity=".14" stroke="none"/><rect x="36" y="76" width="34" height="30" rx="4" fill="none" stroke="#cdb995" stroke-opacity=".55"/></g></symbol>
+<symbol id="b-gel" viewBox="0 0 100 140"><g fill="#151517" stroke="#4d4d54" stroke-width="1.5">
+<rect x="36" y="118" width="28" height="14" rx="3"/><path d="M28 16h44l-5 102H33z"/><rect x="28" y="10" width="44" height="8" rx="2"/>
+<path d="M35 28l-2 84" stroke="#fff" stroke-opacity=".16" stroke-width="5" fill="none"/><rect x="40" y="56" width="20" height="30" rx="4" fill="none" stroke="#cdb995" stroke-opacity=".55"/></g></symbol>
+<symbol id="b-spray" viewBox="0 0 100 140"><g fill="#151517" stroke="#4d4d54" stroke-width="1.5">
+<rect x="46" y="2" width="8" height="8" rx="2"/><rect x="38" y="8" width="24" height="22" rx="4"/>
+<path d="M34 34a16 8 0 0 1 32 0v94a6 6 0 0 1-6 6H40a6 6 0 0 1-6-6z"/>
+<rect x="39" y="44" width="5" height="80" rx="2.5" fill="#fff" fill-opacity=".14" stroke="none"/><rect x="40" y="70" width="20" height="36" rx="3" fill="none" stroke="#cdb995" stroke-opacity=".55"/></g></symbol>
+<symbol id="b-jar" viewBox="0 0 100 140"><g fill="#151517" stroke="#4d4d54" stroke-width="1.5">
+<rect x="16" y="62" width="68" height="20" rx="5"/><rect x="20" y="80" width="60" height="50" rx="10"/>
+<rect x="26" y="68" width="30" height="4" rx="2" fill="#fff" fill-opacity=".14" stroke="none"/><rect x="34" y="96" width="32" height="20" rx="4" fill="none" stroke="#cdb995" stroke-opacity=".55"/></g></symbol>
+<symbol id="b-oil" viewBox="0 0 100 140"><g fill="#151517" stroke="#4d4d54" stroke-width="1.5">
+<rect x="42" y="8" width="16" height="34" rx="8"/><rect x="40" y="40" width="20" height="14" rx="3"/><rect x="30" y="52" width="40" height="80" rx="12"/>
+<rect x="35" y="60" width="5" height="64" rx="2.5" fill="#fff" fill-opacity=".14" stroke="none"/><rect x="42" y="78" width="22" height="30" rx="4" fill="none" stroke="#cdb995" stroke-opacity=".55"/></g></symbol>
+</defs></svg>
+<div class="cos" style="--i:0"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-shampoo"/></svg></div><h3>Шампунь</h3><p>Мягко очищает кожу головы и волосы. Для ежедневного и еженедельного мытья.</p></div>
+<div class="cos" style="--i:1"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-balm"/></svg></div><h3>Кондиционер</h3><p>Смягчает и облегчает расчёсывание. Наносится по длине после шампуня.</p></div>
+<div class="cos" style="--i:2"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-gel"/></svg></div><h3>Гель для укладки</h3><p>Сильная фиксация и влажный блеск. Для чётких, гладких укладок.</p></div>
+<div class="cos" style="--i:3"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-spray"/></svg></div><h3>Лак для волос</h3><p>Финальная фиксация готовой укладки на весь день.</p></div>
+<div class="cos" style="--i:4"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-jar"/></svg></div><h3>Паста и глина</h3><p>Матовая фиксация и текстура. Для естественных объёмных укладок.</p></div>
+<div class="cos" style="--i:5"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-oil"/></svg></div><h3>Масло для бороды</h3><p>Смягчает бороду и кожу под ней. Пара капель после мытья.</p></div>
+</div>
 <div id="shop" hidden><h2 style="margin-top:64px;font-size:clamp(24px,4vw,40px)">Товары</h2><div id="prods"></div>
 <div id="rsbox" class="qr" hidden><b id="rsn"></b><p style="margin:6px 0 14px">Отложим для вас, заберёте при визите. Оплата на месте.</p>
 <input id="rsname" placeholder="Имя"><div style="height:10px"></div><input id="rsphone" type="tel" placeholder="+7 900 000 00 00">
@@ -126,96 +782,277 @@ header .w{flex-wrap:wrap;height:auto;padding-top:14px;padding-bottom:10px;gap:2p
 <a class="btn mob" href="#book">Записаться</a>
 
 <script>
-const $=s=>document.querySelector(s),api=async(u,o)=>{const r=await fetch(u,o);const j=await r.json();if(!r.ok)throw Error(j.error||'Ошибка');return j}
-const post=(u,b)=>api(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})
-const say=(t,c)=>{$('#msg').textContent=t;$('#msg').className=c||''}
-let time='',mid=0,mtime='',rbid=0;
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
-const iso=d=>new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)
-$('#date').min=$('#md').min=iso(new Date());$('#date').value=iso(new Date())
-const hero=$('#hero');hero.addEventListener('pointermove',e=>{const r=hero.getBoundingClientRect();hero.style.setProperty('--x',e.clientX-r.left+'px');hero.style.setProperty('--y',e.clientY-r.top+'px')})
-async function init(){
- const [s,b]=await Promise.all([api('/api/services'),api('/api/barbers')]);
-
- SV=s;BR=b;qshow();$('#services').innerHTML=s.map(x=>`<div class="row"><b>${x.name}</b><span>${x.price} ₽<small>${x.dur} мин</small></span></div>`).join('');
- $('#barbers').innerHTML=b.map(x=>`<div class="m"><i>${x.name[0]}</i><h3>${x.name}</h3><p>${x.spec}</p><p>Стаж ${x.years} лет</p>${x.reviews?`<p>★ ${x.rating} · отзывов: ${x.reviews}</p>`:''}</div>`).join('');
- $('#svc').innerHTML=s.map(x=>`<option value=${x.id}>${x.name} — ${x.price} ₽, ${x.dur} мин</option>`).join('');
- $('#bar').innerHTML='<option value=0>Любой свободный мастер</option>'+b.map(x=>`<option value=${x.id}>${x.name}</option>`).join('');
- restore();slots();showNext();revs();tip();shop()}
-async function loadSlots(el,q,pick){el.innerHTML='';
- try{const t=await api('/api/slots?'+q);if(!t.length){el.textContent='Свободного времени нет — выберите другую дату.';return}
- el.innerHTML=t.map(x=>`<button type="button" class="slot" aria-pressed="false">${x}</button>`).join('');
- el.querySelectorAll('button').forEach(b=>b.onclick=()=>{el.querySelectorAll('button').forEach(o=>o.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');pick(b.textContent)})}
- catch(e){el.textContent=e.message}}
-function slots(){time='';return loadSlots($('#slots'),`service=${$('#svc').value}&barber=${$('#bar').value}&date=${$('#date').value}`,t=>time=t)}
-['svc','bar','date'].forEach(i=>$('#'+i).onchange=slots)
-$('#f').onsubmit=async e=>{e.preventDefault();
- if(!time)return say('Выберите время','err');
- try{const [r]=await post('/api/book',{service:+$('#svc').value,barber:+$('#bar').value,date:$('#date').value,time,name:$('#name').value,phone:$('#phone').value});
-  save();$('#f').innerHTML=`<h3 class="big" style="font-size:30px;margin:24px 0">Вы записаны</h3><p>${r.service}<br>Мастер: ${r.barber}<br>${r.date}, ${r.time}</p><p class="ok">Изменить запись можно в разделе «Мои записи».</p>`}
- catch(e){say(e.message,'err');slots()}}
-const ST={new:'новая',confirmed:'подтверждена',done:'завершена',cancelled:'отменена'}
-async function find(){try{const l=await api('/api/my?phone='+encodeURIComponent($('#mp').value));
- try{localStorage.dady_phone=$('#mp').value}catch(e){}
- $('#list').innerHTML=l.length?l.map(b=>`<div class="bk"><b>${b.service}</b> · ${b.barber}<br>${b.date}, ${b.time} <small>(${ST[b.status]})</small>
- ${['new','confirmed'].includes(b.status)?`<br><button class="btn ghost" onclick="cancel(${b.id})">Отменить</button><button class="btn ghost" onclick="startMove(${b.id})">Перенести</button>`:''}${b.status=='done'?`<br><button class="btn ghost" onclick="again(${b.sid},${b.bid})">Записаться снова</button>${b.reviewed?'':`<button class="btn ghost" onclick="startReview(${b.id})">Оставить отзыв</button>`}`:''}</div>`).join('')+loy(l):'<p>Записей не найдено.</p>'}
- catch(e){$('#list').innerHTML=`<p class="err">${e.message}</p>`}}
-$('#find').onclick=find
-async function cancel(id){if(!confirm('Отменить запись?'))return;
- try{await post('/api/cancel',{id,phone:$('#mp').value});find()}catch(e){alert(e.message)}}
-function startMove(id){mid=id;mtime='';$('#mv').hidden=false;$('#md').value=iso(new Date());mslots()}
-async function mslots(){const b=(await api('/api/my?phone='+encodeURIComponent($('#mp').value))).find(x=>x.id==mid);
- const [s,br]=await Promise.all([api('/api/services'),api('/api/barbers')]);
- const sv=s.find(x=>x.name==b.service).id,bb=br.find(x=>x.name==b.barber).id;
- loadSlots($('#ms'),`service=${sv}&barber=${bb}&date=${$('#md').value}`,t=>mtime=t)}
-$('#md').onchange=mslots
-$('#mgo').onclick=async()=>{if(!mtime)return alert('Выберите время');
- try{await post('/api/move',{id:mid,phone:$('#mp').value,date:$('#md').value,time:mtime});$('#mv').hidden=true;find()}catch(e){alert(e.message);mslots()}}
-const DISC=5,DISC_TXT='скидка 15%'; // правила бонуса — поменяйте под себя
-function loy(l){const n=l.filter(b=>b.status=='done').length,k=DISC-1-n%DISC;
- return `<div class="loy">Каждый ${DISC}-й визит — ${DISC_TXT}. Завершённых визитов: <b>${n}</b>. ${k?`До визита со скидкой: ещё ${k}.`:'Следующий визит — со скидкой!'}</div>`}
-function save(){try{localStorage.dady_name=$('#name').value;localStorage.dady_phone=$('#phone').value}catch(e){}}
-function restore(){try{$('#name').value=localStorage.dady_name||'';$('#phone').value=$('#mp').value=localStorage.dady_phone||'';if($('#mp').value)find()}catch(e){}}
-function again(sid,bid){$('#svc').value=sid;$('#bar').value=bid;slots();location.hash='#book'}
-async function nearest(){for(let i=0;i<14;i++){const d=new Date();d.setDate(d.getDate()+i);const ds=iso(d);
- try{const t=await api(`/api/slots?service=${$('#svc').value}&barber=${$('#bar').value}&date=${ds}`);if(t.length)return{date:ds,time:t[0]}}catch(e){return null}}
- return null}
-async function go(n){$('#date').value=n.date;await slots();[...document.querySelectorAll('#slots .slot')].find(b=>b.textContent==n.time)?.click();location.hash='#book'}
-async function showNext(){const n=await nearest(),b=$('#nx');if(!n)return;
- b.textContent='Ближайшее окно: '+(n.date==iso(new Date())?'сегодня':n.date.slice(8)+'.'+n.date.slice(5,7))+', '+n.time;b.hidden=false;b.onclick=()=>go(n)}
-$('#near').onclick=async()=>{const n=await nearest();n?go(n):say('В ближайшие 2 недели свободного времени нет','err')}
-const TIPS=['не растирайте мокрые волосы полотенцем, лучше аккуратно промокните: так они меньше ломаются.',
+document.documentElement.classList.add('js');
+const $ = s => document.querySelector(s), api = async(u, o) => {
+  const r = await fetch(u, o);
+  const j = await r.json();
+  if (!r.ok)throw Error(j.error || 'Ошибка');
+  return j
+}
+const post = (u, b) => api(u, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(b)})
+const say = (t, c) => {
+  $('#msg').textContent = t;
+  $('#msg').className = c || ''
+}
+let time = '', mid = 0, mtime = '', rbid = 0;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]))
+const iso = d => new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10)
+$('#date').min = $('#md').min = iso(new Date());
+$('#date').value = iso(new Date())
+const hero = $('#hero');
+hero.addEventListener('pointermove', e => {
+  const r = hero.getBoundingClientRect();
+  hero.style.setProperty('--x', e.clientX - r.left + 'px');
+  hero.style.setProperty('--y', e.clientY - r.top + 'px')
+})
+async function init() {
+  const[s, b] = await Promise.all([api('/api/services'), api('/api/barbers')]);
+  SV = s;
+  BR = b;
+  qshow();
+  $('#services').innerHTML = s.map(x => `<div class="row"><b>${x.name}</b><span>${x.price} ₽<small>${x.dur} мин</small></span></div>`).join('');
+  $('#barbers').innerHTML = b.map(x => `<div class="m"><i>${x.name[0]}</i><h3>${x.name}</h3><p>${x.spec}</p><p>Стаж ${x.years} лет</p>${x.reviews?`<p>★ ${x.rating} · отзывов: ${x.reviews}</p>`:''}</div>`).join('');
+  $('#svc').innerHTML = s.map(x => `<option value=${x.id}>${x.name} — ${x.price} ₽, ${x.dur} мин</option>`).join('');
+  $('#bar').innerHTML = '<option value=0>Любой свободный мастер</option>' + b.map(x => `<option value=${x.id}>${x.name}</option>`).join('');
+  restore();
+  slots();
+  showNext();
+  revs();
+  tip();
+  shop()
+}
+async function loadSlots(el, q, pick) {
+  el.innerHTML = '';
+  try {
+    const t = await api('/api/slots?' + q);
+    if (!t.length) {
+      el.textContent = 'Свободного времени нет — выберите другую дату.';
+      return
+    }
+    el.innerHTML = t.map(x => `<button type="button" class="slot" aria-pressed="false">${x}</button>`).join('');
+    el.querySelectorAll('button').forEach(b => b.onclick = () => {
+      el.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+      pick(b.textContent)
+    })
+  } catch (e) {
+    el.textContent = e.message
+  }
+}
+function slots() {
+  time = '';
+  return loadSlots($('#slots'), `service=${$('#svc').value}&barber=${$('#bar').value}&date=${$('#date').value}`, t => time = t)
+}
+['svc', 'bar', 'date'].forEach(i => $('#' + i).onchange = slots)
+$('#f').onsubmit = async e => {
+  e.preventDefault();
+  if (!time)return say('Выберите время', 'err');
+  try {
+    const[r] = await post('/api/book', {service: +$('#svc').value, barber: +$('#bar').value, date: $('#date').value, time, name: $('#name').value, phone: $('#phone').value});
+    save();
+    $('#f').innerHTML = `<h3 class="big" style="font-size:30px;margin:24px 0">Вы записаны</h3><p>${r.service}<br>Мастер: ${r.barber}<br>${r.date}, ${r.time}</p><p class="ok">Изменить запись можно в разделе «Мои записи».</p>`
+  } catch (e) {
+    say(e.message, 'err');
+    slots()
+  }
+}
+const ST = {new: 'новая', confirmed: 'подтверждена', done: 'завершена', cancelled: 'отменена'}
+async function find() {
+  try {
+    const l = await api('/api/my?phone=' + encodeURIComponent($('#mp').value));
+    try {
+      localStorage.dady_phone = $('#mp').value
+    } catch (e) {}
+    $('#list').innerHTML = l.length ? l.map(b => `<div class="bk"><b>${b.service}</b> · ${b.barber}<br>${b.date}, ${b.time} <small>(${ST[b.status]})</small>
+ ${['new','confirmed'].includes(b.status)?`<br><button class="btn ghost" onclick="cancel(${b.id})">Отменить</button><button class="btn ghost" onclick="startMove(${b.id})">Перенести</button>`:''}${b.status=='done'?`<br><button class="btn ghost" onclick="again(${b.sid},${b.bid})">Записаться снова</button>${b.reviewed?'':`<button class="btn ghost" onclick="startReview(${b.id})">Оставить отзыв</button>`}`:''}</div>`).join('') + loy(l) : '<p>Записей не найдено.</p>'
+  } catch (e) {
+    $('#list').innerHTML = `<p class="err">${e.message}</p>`
+  }
+}
+$('#find').onclick = find
+async function cancel(id) {
+  if (!confirm('Отменить запись?'))return;
+  try {
+    await post('/api/cancel', {id, phone: $('#mp').value});
+    find()
+  } catch (e) {
+    alert(e.message)
+  }
+}
+function startMove(id) {
+  mid = id;
+  mtime = '';
+  $('#mv').hidden = false;
+  $('#md').value = iso(new Date());
+  mslots()
+}
+async function mslots() {
+  const b = (await api('/api/my?phone=' + encodeURIComponent($('#mp').value))).find(x => x.id == mid);
+  const[s, br] = await Promise.all([api('/api/services'), api('/api/barbers')]);
+  const sv = s.find(x => x.name == b.service).id, bb = br.find(x => x.name == b.barber).id;
+  loadSlots($('#ms'), `service=${sv}&barber=${bb}&date=${$('#md').value}`, t => mtime = t)
+}
+$('#md').onchange = mslots
+$('#mgo').onclick = async() => {
+  if (!mtime)return alert('Выберите время');
+  try {
+    await post('/api/move', {id: mid, phone: $('#mp').value, date: $('#md').value, time: mtime});
+    $('#mv').hidden = true;
+    find()
+  } catch (e) {
+    alert(e.message);
+    mslots()
+  }
+}
+const DISC = 5, DISC_TXT = 'скидка 15%';  // правила бонуса — поменяйте под себя
+function loy(l) {
+  const n = l.filter(b => b.status == 'done').length, k = DISC - 1 - n % DISC;
+  return `<div class="loy">Каждый ${DISC}-й визит — ${DISC_TXT}. Завершённых визитов: <b>${n}</b>. ${k?`До визита со скидкой: ещё ${k}.`:'Следующий визит — со скидкой!'}</div>`
+}
+function save() {
+  try {
+    localStorage.dady_name = $('#name').value;
+    localStorage.dady_phone = $('#phone').value
+  } catch (e) {}
+}
+function restore() {
+  try {
+    $('#name').value = localStorage.dady_name || '';
+    $('#phone').value = $('#mp').value = localStorage.dady_phone || '';
+    if ($('#mp').value)find()
+  } catch (e) {}
+}
+function again(sid, bid) {
+  $('#svc').value = sid;
+  $('#bar').value = bid;
+  slots();
+  location.hash = '#book'
+}
+async function nearest() {
+  for (let i = 0; i < 14; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const ds = iso(d);
+    try {
+      const t = await api(`/api/slots?service=${$('#svc').value}&barber=${$('#bar').value}&date=${ds}`);
+      if (t.length)return{date: ds, time: t[0]}
+    } catch (e) {
+      return null
+    }
+  }
+  return null
+}
+async function go(n) {
+  $('#date').value = n.date;
+  await slots();
+  [...document.querySelectorAll('#slots .slot')].find(b => b.textContent == n.time)?.click();
+  location.hash = '#book'
+}
+async function showNext() {
+  const n = await nearest(), b = $('#nx');
+  if (!n)return;
+  b.textContent = 'Ближайшее окно: ' + (n.date == iso(new Date()) ? 'сегодня' : n.date.slice(8) + '.' + n.date.slice(5, 7)) + ', ' + n.time;
+  b.hidden = false;
+  b.onclick = () => go(n)
+}
+$('#near').onclick = async() => {
+  const n = await nearest();
+  n ? go(n) : say('В ближайшие 2 недели свободного времени нет', 'err')
+}
+const TIPS = ['не растирайте мокрые волосы полотенцем, лучше аккуратно промокните: так они меньше ломаются.',
 'сушите волосы феном по росту, а в конце пройдитесь холодным воздухом: укладка держится дольше.',
 'бороду лучше мыть специальным средством или мягким шампунем: обычное мыло сушит кожу.',
 'масло для бороды наносят на чистую, слегка влажную бороду, хватает пары капель.',
 'форму стрижки лучше обновлять раз в 3–4 недели, пока контур не расплылся.',
 'укладочное средство наносите на слегка влажные волосы, а не на мокрые.']
-function tip(){$('#tip').textContent='Совет дня: '+TIPS[Math.floor(Date.now()/864e5)%TIPS.length]}
-async function revs(){try{const r=await api('/api/reviews');
- $('#rv-list').innerHTML=r.length?r.map(x=>`<div class="rv"><b>${'★'.repeat(x.stars)}${'☆'.repeat(5-x.stars)}</b> ${esc(x.name)}<small> · ${esc(x.barber)}, ${esc(x.date)}</small><p>${esc(x.text)}</p></div>`).join(''):'<p style="opacity:.6">Отзывов пока нет. После визита оставьте первый в разделе «Мои записи».</p>'}catch(e){}}
-function startReview(id){rbid=id;$('#rvbox').hidden=false;$('#rvbox').scrollIntoView({behavior:'smooth'})}
-$('#rgo').onclick=async()=>{try{await post('/api/review',{id:rbid,phone:$('#mp').value,stars:+$('#rs').value,text:$('#rt').value});
- $('#rvbox').hidden=true;$('#rt').value='';find();revs();alert('Спасибо за отзыв!')}catch(e){alert(e.message)}}
-let SV=[],BR=[],qa=[],qi=0,qrec={},PR=[],rsp=0;
-const QZ=[['Какие у вас волосы?',['Прямые','Волнистые','Кудрявые','Густые и жёсткие']],
-['Форма лица?',['Овальное','Круглое','Квадратное','Вытянутое']],
-['Сколько времени на укладку утром?',['Почти нет','До 5 минут','Люблю повозиться']],
-['Что с бородой?',['Нет','Щетина','Борода']],
-['Чего хочется сегодня?',['Быстро и аккуратно','Сменить образ','Побаловать себя']]];
-const HAIR=['Прямые волосы хорошо держат чёткие линии.','Волнистые волосы лучше оставить чуть длиннее сверху, чтобы они лежали естественно.','Кудрявым волосам нужна длина и объём, мастер подберёт форму, чтобы кудри не топорщились.','Густые жёсткие волосы удобнее стричь короче по бокам, а сверху мастер уберёт лишний объём.'];
-const FACE=['Овальная форма принимает почти любую стрижку.','Круглое лицо визуально вытягивают объём сверху и короткие бока.','Квадратной линии челюсти идёт мягкая текстура сверху.','Вытянутому лицу обычно лучше подходят средняя длина по бокам и чёлка.'];
-function qshow(){const q=$('#qz');if(!q)return;
- if(qi<QZ.length){q.innerHTML=`<p style="opacity:.6">Вопрос ${qi+1} из ${QZ.length}</p><h3 style="font:600 22px Unbounded;margin:0 0 14px">${QZ[qi][0]}</h3>`+QZ[qi][1].map((o,i)=>`<button class="qo" type="button" onclick="qpick(${i})">${o}</button>`).join('');return}
- const [hair,face,time,beard,mood]=qa,nm=mood==2?'Комплексный уход':beard>0?'Стрижка + борода':(mood==0&&time==0)?'Стрижка машинкой':'Мужская стрижка';
- const sv=SV.find(x=>x.name==nm)||SV[0],kw=mood==1?'Креатив':beard>0?'Борода':'Классик',br=BR.find(x=>String(x.spec).includes(kw));
- qrec={svc:sv.id,bar:br?br.id:0};
- q.innerHTML=`<div class="qr"><h3>${esc(sv.name)}</h3><p>${FACE[face]} ${HAIR[hair]}</p><p>${br?`Мастер: <b>${esc(br.name)}</b> (${esc(br.spec)}). `:''}Детали мастер уточнит на месте.</p>
- <p><button class="btn" type="button" onclick="qbook()">Записаться</button> <button class="btn ghost" type="button" onclick="qa=[];qi=0;qshow()">Пройти заново</button></p></div>`}
-function qpick(i){qa[qi]=i;qi++;qshow()}
-function qbook(){$('#svc').value=qrec.svc;$('#bar').value=qrec.bar;slots();location.hash='#book'}
-async function shop(){try{PR=await api('/api/products');$('#shop').hidden=!PR.length;
- $('#prods').innerHTML=PR.map(x=>`<div class="pr"><div><b>${esc(x.name)}</b><p>${esc(x.descr)}</p></div><div style="text-align:right;white-space:nowrap">${+x.price} ₽<br><button class="btn ghost" style="margin-top:8px" type="button" onclick="rsopen(${+x.id})">Забрать при визите</button></div></div>`).join('')}catch(e){}}
-function rsopen(id){rsp=id;$('#rsn').textContent=PR.find(y=>y.id==id).name;$('#rsname').value=$('#name').value;$('#rsphone').value=$('#phone').value;$('#rsbox').hidden=false;$('#rsbox').scrollIntoView({behavior:'smooth',block:'center'})}
-$('#rsgo').onclick=async()=>{try{await post('/api/reserve',{product:rsp,name:$('#rsname').value,phone:$('#rsphone').value});$('#rsbox').hidden=true;alert('Отложили. Заберёте при визите.')}catch(e){alert(e.message)}}
+function tip() {
+  $('#tip').textContent = 'Совет дня: ' + TIPS[Math.floor(Date.now() / 864e5) % TIPS.length]
+}
+async function revs() {
+  try {
+    const r = await api('/api/reviews');
+    $('#rv-list').innerHTML = r.length ? r.map(x => `<div class="rv"><b>${'★'.repeat(x.stars)}${'☆'.repeat(5-x.stars)}</b> ${esc(x.name)}<small> · ${esc(x.barber)}, ${esc(x.date)}</small><p>${esc(x.text)}</p></div>`).join('') : '<p style="opacity:.6">Отзывов пока нет. После визита оставьте первый в разделе «Мои записи».</p>'
+  } catch (e) {}
+}
+function startReview(id) {
+  rbid = id;
+  $('#rvbox').hidden = false;
+  $('#rvbox').scrollIntoView({behavior: 'smooth'})
+}
+$('#rgo').onclick = async() => {
+  try {
+    await post('/api/review', {id: rbid, phone: $('#mp').value, stars: +$('#rs').value, text: $('#rt').value});
+    $('#rvbox').hidden = true;
+    $('#rt').value = '';
+    find();
+    revs();
+    alert('Спасибо за отзыв!')
+  } catch (e) {
+    alert(e.message)
+  }
+}
+let SV = [], BR = [], qa = [], qi = 0, qrec = {}, PR = [], rsp = 0;
+const QZ = [['Какие у вас волосы?', ['Прямые', 'Волнистые', 'Кудрявые', 'Густые и жёсткие']],
+['Форма лица?', ['Овальное', 'Круглое', 'Квадратное', 'Вытянутое']],
+['Сколько времени на укладку утром?', ['Почти нет', 'До 5 минут', 'Люблю повозиться']],
+['Что с бородой?', ['Нет', 'Щетина', 'Борода']],
+['Чего хочется сегодня?', ['Быстро и аккуратно', 'Сменить образ', 'Побаловать себя']]];
+const HAIR = ['Прямые волосы хорошо держат чёткие линии.', 'Волнистые волосы лучше оставить чуть длиннее сверху, чтобы они лежали естественно.', 'Кудрявым волосам нужна длина и объём, мастер подберёт форму, чтобы кудри не топорщились.', 'Густые жёсткие волосы удобнее стричь короче по бокам, а сверху мастер уберёт лишний объём.'];
+const FACE = ['Овальная форма принимает почти любую стрижку.', 'Круглое лицо визуально вытягивают объём сверху и короткие бока.', 'Квадратной линии челюсти идёт мягкая текстура сверху.', 'Вытянутому лицу обычно лучше подходят средняя длина по бокам и чёлка.'];
+function qshow() {
+  const q = $('#qz');
+  if (!q)return;
+  if (qi < QZ.length) {
+    q.innerHTML = `<p style="opacity:.6">Вопрос ${qi+1} из ${QZ.length}</p><h3 style="font:600 22px Unbounded;margin:0 0 14px">${QZ[qi][0]}</h3>` + QZ[qi][1].map((o, i) => `<button class="qo" type="button" onclick="qpick(${i})">${o}</button>`).join('');
+    return
+  }
+  const[hair, face, time, beard, mood] = qa, nm = mood == 2 ? 'Комплексный уход' : beard > 0 ? 'Стрижка + борода' : (mood == 0 && time == 0) ? 'Стрижка машинкой' : 'Мужская стрижка';
+  const sv = SV.find(x => x.name == nm) || SV[0], kw = mood == 1 ? 'Креатив' : beard > 0 ? 'Борода' : 'Классик', br = BR.find(x => String(x.spec).includes(kw));
+  qrec = {svc: sv.id, bar: br ? br.id : 0};
+  q.innerHTML = `<div class="qr"><h3>${esc(sv.name)}</h3><p>${FACE[face]} ${HAIR[hair]}</p><p>${br?`Мастер: <b>${esc(br.name)}</b> (${esc(br.spec)}). `:''}Детали мастер уточнит на месте.</p>
+ <p><button class="btn" type="button" onclick="qbook()">Записаться</button> <button class="btn ghost" type="button" onclick="qa=[];qi=0;qshow()">Пройти заново</button></p></div>`
+}
+function qpick(i) {
+  qa[qi] = i;
+  qi++;
+  qshow()
+}
+function qbook() {
+  $('#svc').value = qrec.svc;
+  $('#bar').value = qrec.bar;
+  slots();
+  location.hash = '#book'
+}
+async function shop() {
+  try {
+    PR = await api('/api/products');
+    $('#shop').hidden = !PR.length;
+    $('#prods').innerHTML = PR.map(x => `<div class="pr"><div><b>${esc(x.name)}</b><p>${esc(x.descr)}</p></div><div style="text-align:right;white-space:nowrap">${+x.price} ₽<br><button class="btn ghost" style="margin-top:8px" type="button" onclick="rsopen(${+x.id})">Забрать при визите</button></div></div>`).join('')
+  } catch (e) {}
+}
+function rsopen(id) {
+  rsp = id;
+  $('#rsn').textContent = PR.find(y => y.id == id).name;
+  $('#rsname').value = $('#name').value;
+  $('#rsphone').value = $('#phone').value;
+  $('#rsbox').hidden = false;
+  $('#rsbox').scrollIntoView({behavior: 'smooth', block: 'center'})
+}
+$('#rsgo').onclick = async() => {
+  try {
+    await post('/api/reserve', {product: rsp, name: $('#rsname').value, phone: $('#rsphone').value});
+    $('#rsbox').hidden = true;
+    alert('Отложили. Заберёте при визите.')
+  } catch (e) {
+    alert(e.message)
+  }
+}
+const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) {
+    e.target.classList.add('in');
+    io.unobserve(e.target)
+  }
+}), {threshold:.2}) : null;
+document.querySelectorAll('.cos').forEach(c => io ? io.observe(c) : c.classList.add('in'));
 init()
 </script></body></html>
