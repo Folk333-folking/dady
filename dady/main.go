@@ -106,6 +106,8 @@ INSERT INTO services(name,price,dur) VALUES('Мужская стрижка',2000
  ('Оформление бороды',1500,30),('Стрижка + борода',3000,90),('Детская стрижка',1300,30),('Комплексный уход',4500,120);
 INSERT INTO barbers(name,spec,years) VALUES('Артём','Классика, fade',8),('Марк','Борода, бритьё',5),('Иван','Креативные стрижки',3);`)
 	}
+	// четвёртый мастер; добавится и в уже существующую базу, если его там ещё нет
+	db.Exec(`INSERT INTO barbers(name,spec,years) SELECT 'Денис','Фейды, укладки',4 WHERE NOT EXISTS (SELECT 1 FROM barbers WHERE name='Денис')`)
 	return err
 }
 
