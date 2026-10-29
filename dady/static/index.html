@@ -695,6 +695,12 @@ body {
   color: var(--sand);
 }
 
+.cos .btn {
+  margin-top: 14px;
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
 @media (max-width: 760px) {
   .team {
     grid-template-columns: repeat(2,1fr);
@@ -744,6 +750,11 @@ body {
 
   .cos p.price {
     font-size: 15px;
+  }
+
+  .cos .btn {
+    padding: 9px 12px;
+    font-size: 13px;
   }
 }
 </style></head><body>
@@ -797,10 +808,10 @@ body {
 <div class="cos" style="--i:6"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-pump"/></svg></div><h3>Шампунь для бороды</h3><p>Бережно очищает бороду и кожу под ней. Подходит для регулярного мытья.</p><p class="price">820 ₽</p></div>
 <div class="cos" style="--i:7"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-flask"/></svg></div><h3>Бальзам после бритья</h3><p>Смягчает кожу после бритья и снимает ощущение стянутости.</p><p class="price">690 ₽</p></div>
 </div>
-<div id="shop" hidden><h2 style="margin-top:64px;font-size:clamp(24px,4vw,40px)">Товары</h2><div id="prods"></div>
+<div id="shop" hidden><h2 style="margin-top:64px;font-size:clamp(24px,4vw,40px)">Товары</h2><div id="prods"></div></div>
 <div id="rsbox" class="qr" hidden><b id="rsn"></b><p style="margin:6px 0 14px">Отложим для вас, заберёте при визите. Оплата на месте.</p>
 <input id="rsname" placeholder="Имя"><div style="height:10px"></div><input id="rsphone" type="tel" placeholder="+7 900 000 00 00">
-<p><button class="btn" id="rsgo" type="button">Отложить</button></p></div></div></div></section>
+<p><button class="btn" id="rsgo" type="button">Отложить</button></p></div></div></section>
 <section id="about"><div class="w cols"><h2>О DADY</h2><div><p style="font-size:19px">Мы за точную работу и спокойную атмосферу. Каждая стрижка начинается с разговора о том, как вы живёте и что вам идёт.</p><p class="tip" id="tip"></p></div></div></section>
 <section id="reviews" style="background:var(--graph)"><div class="w"><h2>Отзывы</h2><div id="rv-list"></div></div></section>
 
@@ -1071,8 +1082,18 @@ function qbook() {
 async function shop() {
   try {
     PR = await api('/api/products');
-    $('#shop').hidden = !PR.length;
-    $('#prods').innerHTML = PR.map(x => `<div class="pr"><div><b>${esc(x.name)}</b><p>${esc(x.descr)}</p></div><div style="text-align:right;white-space:nowrap">${+x.price} ₽<br><button class="btn ghost" style="margin-top:8px" type="button" onclick="rsopen(${+x.id})">Забрать при визите</button></div></div>`).join('')
+    const extra = [];
+    PR.forEach(x => {
+      const card = [...document.querySelectorAll('.cos')].find(c => c.querySelector('h3').textContent === x.name);
+      if (!card) {
+        extra.push(x);
+        return
+      }
+      card.querySelector('.price').textContent = `${+x.price} ₽`;
+      if (!card.querySelector('button')) card.insertAdjacentHTML('beforeend', `<button class="btn ghost" type="button" onclick="rsopen(${+x.id})">Забрать при визите</button>`)
+    });
+    $('#shop').hidden = !extra.length;
+    $('#prods').innerHTML = extra.map(x => `<div class="pr"><div><b>${esc(x.name)}</b><p>${esc(x.descr)}</p></div><div style="text-align:right;white-space:nowrap">${+x.price} ₽<br><button class="btn ghost" style="margin-top:8px" type="button" onclick="rsopen(${+x.id})">Забрать при визите</button></div></div>`).join('')
   } catch (e) {}
 }
 function rsopen(id) {
