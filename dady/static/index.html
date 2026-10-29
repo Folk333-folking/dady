@@ -214,16 +214,12 @@ h2 {
 }
 
 .team {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
   gap: 16px;
-  overflow-x: auto;
-  padding: 10px 0 12px;
-  scroll-snap-type: x mandatory;
 }
 
 .m {
-  flex: 1 0 min(240px,78vw);
-  scroll-snap-align: start;
   background: var(--graph);
   border-radius: 20px;
   padding: 28px;
@@ -704,6 +700,65 @@ body {
     color: inherit;
   }
 }
+
+.cos p.price {
+  margin-top: 12px;
+  opacity: 1;
+  font: 600 17px Unbounded;
+  color: var(--sand);
+}
+
+@media (max-width: 760px) {
+  .team {
+    grid-template-columns: repeat(2,1fr);
+    gap: 12px;
+  }
+
+  .m {
+    padding: 18px;
+  }
+
+  .m i {
+    width: 64px;
+    height: 64px;
+    font-size: 26px;
+    margin-bottom: 28px;
+  }
+
+  .m h3 {
+    font-size: 18px;
+  }
+
+  .care {
+    grid-template-columns: repeat(2,1fr);
+    gap: 12px;
+  }
+
+  .cos {
+    padding: 14px;
+  }
+
+  .stage {
+    height: 130px;
+  }
+
+  .bottle {
+    width: 72px;
+    height: 101px;
+  }
+
+  .cos h3 {
+    font-size: 15px;
+  }
+
+  .cos p {
+    font-size: 13px;
+  }
+
+  .cos p.price {
+    font-size: 15px;
+  }
+}
 </style></head><body>
 <header><div class="w"><a class="logo" href="#">DADY</a>
 <nav><a href="#price">Прайс</a><a href="#team">Мастера</a><a href="#quiz">Подбор</a><a href="#care">Уход</a><a href="#my">Мои записи</a><a href="#contacts">Контакты</a><a href="#book">Записаться</a></nav></div></header>
@@ -738,13 +793,22 @@ body {
 <symbol id="b-oil" viewBox="0 0 100 140"><g fill="#151517" stroke="#4d4d54" stroke-width="1.5">
 <rect x="42" y="8" width="16" height="34" rx="8"/><rect x="40" y="40" width="20" height="14" rx="3"/><rect x="30" y="52" width="40" height="80" rx="12"/>
 <rect x="35" y="60" width="5" height="64" rx="2.5" fill="#fff" fill-opacity=".14" stroke="none"/><rect x="42" y="78" width="22" height="30" rx="4" fill="none" stroke="#cdb995" stroke-opacity=".55"/></g></symbol>
+<symbol id="b-pump" viewBox="0 0 100 140"><g fill="#151517" stroke="#4d4d54" stroke-width="1.5">
+<rect x="24" y="14" width="6" height="5" rx="2"/><rect x="28" y="12" width="38" height="10" rx="4"/><rect x="46" y="22" width="8" height="18" rx="2"/>
+<rect x="42" y="38" width="16" height="14" rx="3"/><rect x="30" y="50" width="40" height="82" rx="12"/>
+<rect x="35" y="60" width="5" height="64" rx="2.5" fill="#fff" fill-opacity=".14" stroke="none"/><rect x="42" y="78" width="22" height="30" rx="4" fill="none" stroke="#cdb995" stroke-opacity=".55"/></g></symbol>
+<symbol id="b-flask" viewBox="0 0 100 140"><g fill="#151517" stroke="#4d4d54" stroke-width="1.5">
+<rect x="40" y="8" width="20" height="22" rx="5"/><path d="M42 30h16l12 14v80a8 8 0 0 1-8 8H38a8 8 0 0 1-8-8V44z"/>
+<rect x="35" y="52" width="5" height="70" rx="2.5" fill="#fff" fill-opacity=".14" stroke="none"/><rect x="42" y="76" width="22" height="32" rx="4" fill="none" stroke="#cdb995" stroke-opacity=".55"/></g></symbol>
 </defs></svg>
-<div class="cos" style="--i:0"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-shampoo"/></svg></div><h3>Шампунь</h3><p>Мягко очищает кожу головы и волосы. Для ежедневного и еженедельного мытья.</p></div>
-<div class="cos" style="--i:1"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-balm"/></svg></div><h3>Кондиционер</h3><p>Смягчает и облегчает расчёсывание. Наносится по длине после шампуня.</p></div>
-<div class="cos" style="--i:2"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-gel"/></svg></div><h3>Гель для укладки</h3><p>Сильная фиксация и влажный блеск. Для чётких, гладких укладок.</p></div>
-<div class="cos" style="--i:3"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-spray"/></svg></div><h3>Лак для волос</h3><p>Финальная фиксация готовой укладки на весь день.</p></div>
-<div class="cos" style="--i:4"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-jar"/></svg></div><h3>Паста и глина</h3><p>Матовая фиксация и текстура. Для естественных объёмных укладок.</p></div>
-<div class="cos" style="--i:5"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-oil"/></svg></div><h3>Масло для бороды</h3><p>Смягчает бороду и кожу под ней. Пара капель после мытья.</p></div>
+<div class="cos" style="--i:0"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-shampoo"/></svg></div><h3>Шампунь</h3><p>Мягко очищает кожу головы и волосы. Для ежедневного и еженедельного мытья.</p><p class="price">750 ₽</p></div>
+<div class="cos" style="--i:1"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-balm"/></svg></div><h3>Кондиционер</h3><p>Смягчает и облегчает расчёсывание. Наносится по длине после шампуня.</p><p class="price">780 ₽</p></div>
+<div class="cos" style="--i:2"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-gel"/></svg></div><h3>Гель для укладки</h3><p>Сильная фиксация и влажный блеск. Для чётких, гладких укладок.</p><p class="price">650 ₽</p></div>
+<div class="cos" style="--i:3"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-spray"/></svg></div><h3>Лак для волос</h3><p>Финальная фиксация готовой укладки на весь день.</p><p class="price">590 ₽</p></div>
+<div class="cos" style="--i:4"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-jar"/></svg></div><h3>Паста и глина</h3><p>Матовая фиксация и текстура. Для естественных объёмных укладок.</p><p class="price">890 ₽</p></div>
+<div class="cos" style="--i:5"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-oil"/></svg></div><h3>Масло для бороды</h3><p>Смягчает бороду и кожу под ней. Пара капель после мытья.</p><p class="price">990 ₽</p></div>
+<div class="cos" style="--i:6"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-pump"/></svg></div><h3>Шампунь для бороды</h3><p>Бережно очищает бороду и кожу под ней. Подходит для регулярного мытья.</p><p class="price">820 ₽</p></div>
+<div class="cos" style="--i:7"><div class="stage"><svg class="bottle" viewBox="0 0 100 140" aria-hidden="true"><use href="#b-flask"/></svg></div><h3>Бальзам после бритья</h3><p>Смягчает кожу после бритья и снимает ощущение стянутости.</p><p class="price">690 ₽</p></div>
 </div>
 <div id="shop" hidden><h2 style="margin-top:64px;font-size:clamp(24px,4vw,40px)">Товары</h2><div id="prods"></div>
 <div id="rsbox" class="qr" hidden><b id="rsn"></b><p style="margin:6px 0 14px">Отложим для вас, заберёте при визите. Оплата на месте.</p>
