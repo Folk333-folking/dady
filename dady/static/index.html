@@ -110,16 +110,12 @@ select:focus-visible,
   outline-offset: 3px;
 }
 
-/* hero: курсор — «машинка», стирающая контур и открывающая цвет */
 .hero {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   position: relative;
-  --x: 50%;
-  --y: 50%;
-  cursor: crosshair;
 }
 
 .hero .big {
@@ -131,17 +127,8 @@ select:focus-visible,
   display: block;
 }
 
-.hero .out {
-  color: transparent;
-  -webkit-text-stroke: 1.5px #55555c;
-}
-
-.hero .fill {
-  position: absolute;
-  inset: 0;
+.hero .title {
   color: var(--sand);
-  -webkit-mask: radial-gradient(circle 170px at var(--x) var(--y),#000 98%,transparent);
-  mask: radial-gradient(circle 170px at var(--x) var(--y),#000 98%,transparent);
 }
 
 .hero p {
@@ -764,7 +751,7 @@ body {
 <nav><a href="#price">Прайс</a><a href="#team">Мастера</a><a href="#quiz">Подбор</a><a href="#care">Уход</a><a href="#my">Мои записи</a><a href="#contacts">Контакты</a><a href="#book">Записаться</a></nav></div></header>
 
 <div class="hero" id="hero"><div class="w"><h1 class="big" aria-label="Твой стиль. Твои правила.">
-<span class="out" aria-hidden="true">Твой стиль.<br>Твои правила.</span><span class="fill" aria-hidden="true">Твой стиль.<br>Твои правила.</span></h1>
+<span class="title" aria-hidden="true">Твой стиль.<br>Твои правила.</span></h1>
 <p>Барбершоп в Архангельске без спешки и навязанных услуг. Выберите мастера и время, остальное сделаем мы.</p>
 <a class="btn" href="#book">Записаться</a><button class="btn ghost" id="nx" type="button" hidden></button></div></div>
 
@@ -862,13 +849,7 @@ let time = '', mid = 0, mtime = '', rbid = 0;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]))
 const iso = d => new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10)
 $('#date').min = $('#md').min = iso(new Date());
-$('#date').value = iso(new Date())
-const hero = $('#hero');
-hero.addEventListener('pointermove', e => {
-  const r = hero.getBoundingClientRect();
-  hero.style.setProperty('--x', e.clientX - r.left + 'px');
-  hero.style.setProperty('--y', e.clientY - r.top + 'px')
-})
+$('#date').value = iso(new Date());
 async function init() {
   const[s, b] = await Promise.all([api('/api/services'), api('/api/barbers')]);
   SV = s;
