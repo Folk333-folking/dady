@@ -217,12 +217,12 @@ h2 {
   display: flex;
   gap: 16px;
   overflow-x: auto;
-  padding-bottom: 12px;
+  padding: 10px 0 12px;
   scroll-snap-type: x mandatory;
 }
 
 .m {
-  flex: 0 0 min(280px,78vw);
+  flex: 1 0 min(240px,78vw);
   scroll-snap-align: start;
   background: var(--graph);
   border-radius: 20px;
@@ -231,7 +231,7 @@ h2 {
 }
 
 .m:hover {
-  transform: rotate(-1.5deg) translateY(-6px);
+  transform: translateY(-6px);
   background: var(--wine);
 }
 
