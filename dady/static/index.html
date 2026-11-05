@@ -6,11 +6,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --ink: #101010;
-  --graph: #1e1e1e;
-  --line: #3a3a3a;
-  --paper: #f2f2f2;
-  --sand: #cfcfcf;
+  --ink: #1a1a1a;
+  --graph: #f0f0f0;
+  --line: #d6d6d6;
+  --paper: #ffffff;
+  --sand: #8c8c8c;
   --wine: #4a4a4a;
 }
 
@@ -24,8 +24,8 @@ html {
 
 body {
   margin: 0;
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--paper);
+  color: var(--ink);
   font: 16px/1.55 Onest,system-ui,sans-serif;
   overflow-x: hidden;
 }
@@ -68,20 +68,23 @@ header .w {
   font: 800 22px Unbounded;
   text-decoration: none;
   color: #fff;
+  background: var(--ink);
+  padding: 6px 12px;
+  border-radius: 2px;
 }
 
 nav a {
   margin-left: 20px;
   text-decoration: none;
-  color: #fff;
+  color: var(--ink);
   font-size: 14px;
 }
 
 .btn {
   display: inline-block;
   border: 0;
-  background: var(--sand);
-  color: var(--ink);
+  background: var(--ink);
+  color: #fff;
   font: 600 15px Onest;
   padding: 15px 28px;
   border-radius: 40px;
@@ -92,14 +95,14 @@ nav a {
 
 .btn:hover {
   background: var(--wine);
-  color: var(--paper);
+  color: #fff;
   transform: translateY(-2px);
 }
 
 .btn.ghost {
   background: none;
-  color: var(--paper);
-  border: 1px solid var(--line);
+  color: var(--ink);
+  border: 1px solid #b5b5b5;
 }
 
 .btn:focus-visible,
@@ -128,12 +131,12 @@ select:focus-visible,
 }
 
 .hero .title {
-  color: var(--sand);
+  color: var(--ink);
 }
 
 .hero p {
   max-width: 420px;
-  color: #aaa;
+  color: #666;
   margin: 36px 0;
 }
 
@@ -171,7 +174,7 @@ h2 {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--sand);
+  background: var(--ink);
   transform: translateY(101%);
   transition: transform .35s;
   z-index: 0;
@@ -183,7 +186,7 @@ h2 {
 }
 
 .row:hover {
-  color: var(--ink);
+  color: #fff;
 }
 
 .row>* {
@@ -207,15 +210,23 @@ h2 {
 }
 
 .m {
-  background: var(--graph);
+  background: #fff;
   border-radius: 20px;
   padding: 28px;
   transition: transform .3s,background .3s;
+  border: 1px solid var(--line);
 }
 
 .m:hover {
   transform: translateY(-6px);
   background: var(--wine);
+  color: #fff;
+  border-color: var(--wine);
+}
+
+.m:hover i {
+  background: #fff;
+  color: var(--ink);
 }
 
 .m i {
@@ -224,8 +235,8 @@ h2 {
   width: 92px;
   height: 92px;
   border-radius: 50%;
-  background: var(--sand);
-  color: var(--ink);
+  background: var(--ink);
+  color: #fff;
   font: 800 38px Unbounded;
   font-style: normal;
   margin-bottom: 60px;
@@ -256,7 +267,7 @@ h2 {
 #book {
   background: var(--paper);
   color: var(--ink);
-  border-radius: 36px 36px 0 0;
+  border-radius: 0;
 }
 
 #book h2 {
@@ -315,7 +326,7 @@ select {
 
 .slot[aria-pressed=true] {
   background: var(--ink);
-  color: var(--sand);
+  color: #fff;
   border-color: var(--ink);
   transform: scale(1.06);
 }
@@ -395,7 +406,7 @@ textarea {
 }
 
 .rv b {
-  color: var(--sand);
+  color: var(--wine);
   letter-spacing: 2px;
 }
 
@@ -411,8 +422,8 @@ textarea {
 .tip {
   margin-top: 20px;
   padding-left: 16px;
-  border-left: 3px solid var(--sand);
-  color: #bbb;
+  border-left: 3px solid var(--ink);
+  color: #555;
 }
 
 #nx {
@@ -424,6 +435,7 @@ textarea {
   border-radius: 12px;
   background: #fff;
   margin: 16px 0;
+  border: 1px solid var(--line);
 }
 
 footer {
@@ -491,11 +503,12 @@ select {
 }
 
 .qr {
-  background: #fff;
+  background: var(--graph);
   color: var(--ink);
   border-radius: 20px;
   padding: 24px;
   margin-top: 16px;
+  border: 1px solid var(--line);
 }
 
 .qr h3 {
@@ -521,10 +534,11 @@ select {
 .cos {
   position: relative;
   overflow: hidden;
-  background: var(--ink);
+  background: #fff;
   border-radius: 18px;
   padding: 22px;
   text-align: center;
+  border: 1px solid var(--line);
 }
 
 .cos h3 {
@@ -542,14 +556,14 @@ select {
   place-items: center;
   height: 170px;
   border-radius: 14px;
-  background: radial-gradient(circle at 50% 70%,rgba(255,255,255,.14),transparent 65%);
+  background: radial-gradient(circle at 50% 70%,#e2e2e2,transparent 65%);
   transition: transform .4s cubic-bezier(.2,.8,.2,1);
 }
 
 .bottle {
   width: 96px;
   height: 135px;
-  filter: drop-shadow(0 14px 14px rgba(0,0,0,.6));
+  filter: drop-shadow(0 12px 10px rgba(0,0,0,.28));
   animation: float 4.5s ease-in-out infinite;
   animation-delay: calc(var(--i)*-.7s);
 }
@@ -565,8 +579,9 @@ select {
   bottom: 0;
   left: -60%;
   width: 40%;
-  background: linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);
+  background: linear-gradient(100deg,transparent,rgba(0,0,0,.06),transparent);
   transform: skewX(-20deg);
+  opacity: 0;
 }
 
 .cos:hover::after {
@@ -595,8 +610,14 @@ select {
 }
 
 @keyframes shine {
-  to {
+  0% {
+    left: -60%;
+    opacity: 1;
+  }
+
+  100% {
     left: 130%;
+    opacity: 1;
   }
 }
 
@@ -678,7 +699,14 @@ body {
 @media (hover: none) {
   .m:hover {
     transform: none;
-    background: var(--graph);
+    background: #fff;
+    color: var(--ink);
+    border-color: var(--line);
+  }
+
+  .m:hover i {
+    background: var(--ink);
+    color: #fff;
   }
   .row:hover::before {
     transform: translateY(101%);
@@ -692,7 +720,7 @@ body {
   margin-top: 12px;
   opacity: 1;
   font: 600 17px Unbounded;
-  color: var(--sand);
+  color: var(--ink);
 }
 
 .cos .btn {
@@ -826,7 +854,7 @@ body {
 <div id="msg" role="status"></div><button class="btn" type="submit">Подтвердить запись</button></form>
 <a class="tg" href="https://t.me/dady_barber_bot">Или запишитесь в Telegram: @dady_barber_bot</a></div></section>
 
-<section id="my" style="background:var(--paper);color:var(--ink);padding-top:0"><div class="w"><h2 style="color:var(--ink)">Мои записи</h2><div class="box">
+<section id="my" style="background:var(--graph);color:var(--ink);padding-top:0"><div class="w"><h2 style="color:var(--ink)">Мои записи</h2><div class="box">
 <label for="mp">Телефон, указанный при записи</label><input id="mp" type="tel">
 <p><button class="btn ghost" id="find" type="button">Показать записи</button></p></div>
 <div id="list"></div><div id="mv" class="box" hidden>
