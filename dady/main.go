@@ -1,16 +1,12 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -22,18 +18,60 @@ import (
 	_ "time/tzdata"
 )
 
-const stepMin = 30
+const (
+	openMin  = 10 * 60 // 10:00 — часы по умолчанию (сайт берёт реальные из таблицы barbers)
+	closeMin = 21 * 60 // 21:00
+	stepMin  = 30
+)
 
 var (
 	db      *sql.DB
-	mu      sync.Mutex // записи создаются по одной, чтобы не было двойной записи
+	mu      sync.Mutex // serialises booking writes (plus a single DB connection)
 	phoneRe = regexp.MustCompile(`^\+?[0-9]{10,15}$`)
-	statuses = map[string]bool{"pending": true, "confirmed": true, "arrived": true, "done": true,
-		"cancelled_client": true, "cancelled_admin": true, "no_show": true}
 )
 
-// активные записи занимают время; отменённые и «не пришёл» — нет
-const busy = `status NOT IN('cancelled_client','cancelled_admin','no_show')`
+func main() {
+	if loc, e := time.LoadLocation("Europe/Moscow"); e == nil {
+		time.Local = loc // Архангельск живёт по московскому времени
+	}
+	var err error
+	db, err = sql.Open("sqlite", "dady.db?_pragma=busy_timeout(5000)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	db.SetMaxOpenConns(1)
+	if err = initDB(); err != nil {
+		log.Fatal(err)
+	}
+	startBot()
+	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir("static")))
+	mux.HandleFunc("GET /api/services", listServices)
+	mux.HandleFunc("GET /api/barbers", listBarbers)
+	mux.HandleFunc("GET /api/slots", slotsH)
+	mux.HandleFunc("POST /api/book", bookH)
+	mux.HandleFunc("GET /api/my", myH)
+	mux.HandleFunc("POST /api/cancel", cancelH)
+	mux.HandleFunc("POST /api/move", moveH)
+	mux.HandleFunc("GET /api/admin/bookings", admin(adminList))
+	mux.HandleFunc("POST /api/admin/status", admin(adminStatus))
+	mux.HandleFunc("GET /api/admin/blocks", admin(adminBlocks))
+	mux.HandleFunc("POST /api/admin/block", admin(adminBlock))
+	mux.HandleFunc("POST /api/admin/unblock", admin(adminUnblock))
+	mux.HandleFunc("POST /api/admin/hours", admin(adminHours))
+	mux.HandleFunc("GET /api/reviews", reviewsH)
+	mux.HandleFunc("POST /api/review", reviewH)
+	mux.HandleFunc("POST /api/admin/review/delete", admin(adminReviewDelete))
+	mux.HandleFunc("GET /api/products", productsH)
+	mux.HandleFunc("POST /api/reserve", reserveH)
+	mux.HandleFunc("GET /api/admin/reserves", admin(adminReserves))
+	mux.HandleFunc("POST /api/admin/reserve/status", admin(adminReserveStatus))
+	mux.HandleFunc("POST /api/admin/product", admin(adminProductAdd))
+	mux.HandleFunc("POST /api/admin/product/delete", admin(adminProductDel))
+	addr := ":" + env("PORT", "8080")
+	log.Println("DADY on", addr)
+	log.Fatal(http.ListenAndServe(addr, mux))
+}
 
 func env(k, d string) string {
 	if v := os.Getenv(k); v != "" {
@@ -42,118 +80,66 @@ func env(k, d string) string {
 	return d
 }
 
-func main() {
-	if loc, e := time.LoadLocation(env("TZ_NAME", "Europe/Moscow")); e == nil {
-		time.Local = loc
-	}
-	var err error
-	db, err = sql.Open("sqlite", env("DB_PATH", "salon.db")+"?_pragma=busy_timeout(5000)")
-	if err != nil {
-		log.Fatal(err)
-	}
-	db.SetMaxOpenConns(1)
-	if err = initDB(); err != nil {
-		log.Fatal(err)
-	}
-	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir("static")))
-	mux.HandleFunc("GET /api/services", servicesH)
-	mux.HandleFunc("GET /api/masters", mastersH)
-	mux.HandleFunc("GET /api/slots", slotsH)
-	mux.HandleFunc("POST /api/book", bookH)
-	mux.HandleFunc("GET /api/manage/{token}", manageH)
-	mux.HandleFunc("POST /api/manage/{token}/cancel", manageCancelH)
-	mux.HandleFunc("POST /api/admin/login", loginH)
-	mux.HandleFunc("POST /api/admin/logout", logoutH)
-	mux.HandleFunc("GET /api/admin/me", auth(func(w http.ResponseWriter, r *http.Request) { js(w, 200, map[string]bool{"ok": true}) }))
-	mux.HandleFunc("GET /api/admin/stats", auth(statsH))
-	mux.HandleFunc("GET /api/admin/bookings", auth(adminBookingsH))
-	mux.HandleFunc("POST /api/admin/status", auth(adminStatusH))
-	mux.HandleFunc("GET /api/admin/services", auth(adminServicesH))
-	mux.HandleFunc("POST /api/admin/service", auth(adminServiceSaveH))
-	mux.HandleFunc("GET /api/admin/masters", auth(adminMastersH))
-	mux.HandleFunc("POST /api/admin/master", auth(adminMasterSaveH))
-	mux.HandleFunc("GET /api/admin/offs", auth(adminOffsH))
-	mux.HandleFunc("POST /api/admin/off", auth(adminOffAddH))
-	mux.HandleFunc("POST /api/admin/off/delete", auth(adminOffDelH))
-	addr := ":" + env("PORT", "8080")
-	log.Println("Салон запущен на", addr)
-	log.Fatal(http.ListenAndServe(addr, secure(mux)))
-}
-
 func initDB() error {
 	_, err := db.Exec(`
-CREATE TABLE IF NOT EXISTS services(id INTEGER PRIMARY KEY, name TEXT, descr TEXT, price INT, dur INT, active INT DEFAULT 1);
-CREATE TABLE IF NOT EXISTS masters(id INTEGER PRIMARY KEY, name TEXT, spec TEXT, open_min INT DEFAULT 600, close_min INT DEFAULT 1200, active INT DEFAULT 1);
-CREATE TABLE IF NOT EXISTS bookings(id INTEGER PRIMARY KEY, service INT, master INT, date TEXT, start INT, dur INT, price INT,
-  name TEXT, phone TEXT, comment TEXT, status TEXT DEFAULT 'pending', token TEXT UNIQUE, req TEXT UNIQUE, created TEXT DEFAULT CURRENT_TIMESTAMP);
-CREATE INDEX IF NOT EXISTS ix_bk ON bookings(master, date);
-CREATE TABLE IF NOT EXISTS offs(id INTEGER PRIMARY KEY, master INT DEFAULT 0, from_date TEXT, to_date TEXT, from_min INT, to_min INT, note TEXT);
-CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, login TEXT UNIQUE, hash TEXT);
-CREATE TABLE IF NOT EXISTS sessions(sid TEXT PRIMARY KEY, exp INT);`)
+CREATE TABLE IF NOT EXISTS services(id INTEGER PRIMARY KEY, name TEXT, price INT, dur INT);
+CREATE TABLE IF NOT EXISTS barbers(id INTEGER PRIMARY KEY, name TEXT, spec TEXT, years INT);
+CREATE TABLE IF NOT EXISTS bookings(id INTEGER PRIMARY KEY, service INT, barber INT, date TEXT, start INT, dur INT,
+  name TEXT, phone TEXT, status TEXT DEFAULT 'new', created TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX IF NOT EXISTS ix_b ON bookings(barber, date);
+CREATE TABLE IF NOT EXISTS blocks(id INTEGER PRIMARY KEY, barber INT DEFAULT 0, date TEXT, from_min INT, to_min INT, note TEXT);
+CREATE INDEX IF NOT EXISTS ix_blk ON blocks(date);
+CREATE TABLE IF NOT EXISTS reviews(id INTEGER PRIMARY KEY, booking INT UNIQUE, barber INT, name TEXT, stars INT, text TEXT, created TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY, name TEXT, descr TEXT, price INT);
+CREATE TABLE IF NOT EXISTS reserves(id INTEGER PRIMARY KEY, product INT, name TEXT, phone TEXT, status TEXT DEFAULT 'new', created TEXT DEFAULT CURRENT_TIMESTAMP);`)
 	if err != nil {
 		return err
 	}
-	for _, col := range []string{"descr TEXT DEFAULT ''", "days TEXT DEFAULT '0,1,2,3,4,5,6'", "break_from INT DEFAULT 0", "break_to INT DEFAULT 0"} {
-		db.Exec(`ALTER TABLE masters ADD COLUMN ` + col) // ошибка «колонка уже есть» нормальна
-	}
+	db.Exec(`ALTER TABLE bookings ADD COLUMN chat INT`) // ошибка «колонка уже есть» нормальна
+	db.Exec(`ALTER TABLE barbers ADD COLUMN open_min INT DEFAULT 600`)   // рабочие часы мастера по умолчанию 10:00–21:00
+	db.Exec(`ALTER TABLE barbers ADD COLUMN close_min INT DEFAULT 1260`)
 	var n int
 	db.QueryRow(`SELECT COUNT(*) FROM services`).Scan(&n)
-	if n == 0 {
-		db.Exec(`INSERT INTO services(name,descr,price,dur) VALUES
- ('Маникюр без покрытия','Аккуратная обработка ногтей и кутикулы',1500,60),
- ('Маникюр с гель-лаком','Маникюр и стойкое покрытие на выбор',2500,90),
- ('Снятие покрытия','Бережное снятие гель-лака',700,30),
- ('Наращивание ногтей','Моделирование формы и длины',4000,150),
- ('Коррекция ногтей','Поддержание формы нарощенных ногтей',3200,120),
- ('Дизайн ногтей','Рисунки, стразы, втирки',500,30),
- ('Укрепление ногтей','Укрепляющее покрытие для натуральных ногтей',1200,45),
- ('Педикюр','Комплексный уход за стопами',3000,90);
-INSERT INTO masters(name,spec) VALUES('Анна','Маникюр, дизайн'),('Мария','Наращивание, коррекция'),('Елена','Педикюр, укрепление');`)
+	if n == 0 { // demo data
+		_, err = db.Exec(`
+INSERT INTO services(name,price,dur) VALUES('Мужская стрижка',2000,60),('Стрижка машинкой',1200,30),
+ ('Оформление бороды',1500,30),('Стрижка + борода',3000,90),('Детская стрижка',1300,30),('Комплексный уход',4500,120);
+INSERT INTO barbers(name,spec,years) VALUES('Артём','Классика, fade',8),('Марк','Борода, бритьё',5),('Иван','Креативные стрижки',3);`)
 	}
-	// первый администратор из переменных окружения
-	db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n)
-	if n == 0 {
-		login, pw := env("ADMIN_LOGIN", "admin"), os.Getenv("ADMIN_PASSWORD")
-		if pw == "" {
-			pw = randHex(6)
-			log.Println("ПАРОЛЬ АДМИНИСТРАТОРА (показан один раз):", pw)
-		}
-		db.Exec(`INSERT INTO users(login,hash) VALUES(?,?)`, login, hashPw(pw))
+	// четвёртый мастер; добавится и в уже существующую базу, если его там ещё нет
+	db.Exec(`INSERT INTO barbers(name,spec,years) SELECT 'Денис','Фейды, укладки',4 WHERE NOT EXISTS (SELECT 1 FROM barbers WHERE name='Денис')`)
+	// стартовые товары для ухода (один раз; дальше ими управляет админка)
+	var ver int
+	db.QueryRow(`PRAGMA user_version`).Scan(&ver)
+	if ver < 1 {
+		db.Exec(`INSERT INTO products(name,descr,price) VALUES
+ ('Шампунь','Мягко очищает кожу головы и волосы. Для ежедневного и еженедельного мытья.',750),
+ ('Кондиционер','Смягчает и облегчает расчёсывание. Наносится по длине после шампуня.',780),
+ ('Гель для укладки','Сильная фиксация и влажный блеск. Для чётких, гладких укладок.',650),
+ ('Лак для волос','Финальная фиксация готовой укладки на весь день.',590),
+ ('Паста и глина','Матовая фиксация и текстура. Для естественных объёмных укладок.',890),
+ ('Масло для бороды','Смягчает бороду и кожу под ней. Пара капель после мытья.',990),
+ ('Шампунь для бороды','Бережно очищает бороду и кожу под ней. Подходит для регулярного мытья.',820),
+ ('Бальзам после бритья','Смягчает кожу после бритья и снимает ощущение стянутости.',690)`)
+		db.Exec(`PRAGMA user_version=1`)
 	}
-	return nil
+	return err
 }
 
-// ---------- вспомогательное ----------
+// ---------- helpers ----------
 func js(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(v)
 }
 func fail(w http.ResponseWriter, code int, msg string) { js(w, code, map[string]string{"error": msg}) }
-func randHex(n int) string {
-	b := make([]byte, n)
-	rand.Read(b)
-	return hex.EncodeToString(b)
+func hm(m int) string                                  { return time.Date(0, 1, 1, m/60, m%60, 0, 0, time.UTC).Format("15:04") }
+func cleanPhone(p string) string {
+	return strings.NewReplacer(" ", "", "-", "", "(", "", ")", "").Replace(p)
 }
-func hm(m int) string          { return time.Date(0, 1, 1, m/60, m%60, 0, 0, time.UTC).Format("15:04") }
-func cleanPhone(p string) string { return strings.NewReplacer(" ", "", "-", "", "(", "", ")", "").Replace(p) }
 func parseHM(s string) (int, error) {
 	t, err := time.Parse("15:04", s)
 	return t.Hour()*60 + t.Minute(), err
-}
-
-func secure(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Referrer-Policy", "same-origin")
-		if r.Method == "POST" && r.Header.Get("X-Requested-With") != "fetch" { // защита от межсайтовых запросов
-			fail(w, 403, "запрос отклонён")
-			return
-		}
-		h.ServeHTTP(w, r)
-	})
 }
 
 func rows(w http.ResponseWriter, q string, args ...any) {
@@ -184,154 +170,54 @@ func rows(w http.ResponseWriter, q string, args ...any) {
 	js(w, 200, out)
 }
 
-// ---------- пароли и сессии ----------
-func pbkdf2(pw, salt []byte, iter int) []byte {
-	prf := hmac.New(sha256.New, pw)
-	prf.Write(salt)
-	prf.Write([]byte{0, 0, 0, 1})
-	u := prf.Sum(nil)
-	t := append([]byte(nil), u...)
-	for i := 1; i < iter; i++ {
-		prf.Reset()
-		prf.Write(u)
-		u = prf.Sum(nil)
-		for j := range t {
-			t[j] ^= u[j]
-		}
-	}
-	return t
-}
-func hashPw(pw string) string {
-	salt := make([]byte, 16)
-	rand.Read(salt)
-	return hex.EncodeToString(salt) + "$" + hex.EncodeToString(pbkdf2([]byte(pw), salt, 120000))
-}
-func checkPw(pw, stored string) bool {
-	p := strings.SplitN(stored, "$", 2)
-	if len(p) != 2 {
-		return false
-	}
-	salt, _ := hex.DecodeString(p[0])
-	want, _ := hex.DecodeString(p[1])
-	return subtle.ConstantTimeCompare(pbkdf2([]byte(pw), salt, 120000), want) == 1
-}
-func sidHash(s string) string { h := sha256.Sum256([]byte(s)); return hex.EncodeToString(h[:]) }
+func listServices(w http.ResponseWriter, _ *http.Request) { rows(w, `SELECT * FROM services`) }
+func listBarbers(w http.ResponseWriter, _ *http.Request)  { rows(w, `SELECT b.*, COALESCE((SELECT ROUND(AVG(stars),1) FROM reviews WHERE barber=b.id),0) AS rating,
+ (SELECT COUNT(*) FROM reviews WHERE barber=b.id) AS reviews FROM barbers b`) }
 
-var (
-	tries   = map[string][]time.Time{}
-	triesMu sync.Mutex
-)
-
-func tooMany(ip string) bool { // не более 8 попыток входа за 10 минут с одного адреса
-	triesMu.Lock()
-	defer triesMu.Unlock()
-	var keep []time.Time
-	for _, t := range tries[ip] {
-		if time.Since(t) < 10*time.Minute {
-			keep = append(keep, t)
-		}
-	}
-	tries[ip] = keep
-	return len(keep) >= 8
-}
-
-func loginH(w http.ResponseWriter, r *http.Request) {
-	ip := clientIP(r)
-	if tooMany(ip) {
-		fail(w, 429, "слишком много попыток, подождите 10 минут")
-		return
-	}
-	var q struct{ Login, Password string }
-	json.NewDecoder(r.Body).Decode(&q)
-	var stored string
-	err := db.QueryRow(`SELECT hash FROM users WHERE login=?`, q.Login).Scan(&stored)
-	if err != nil || !checkPw(q.Password, stored) {
-		triesMu.Lock()
-		tries[ip] = append(tries[ip], time.Now())
-		triesMu.Unlock()
-		fail(w, 401, "неверный логин или пароль")
-		return
-	}
-	sid := randHex(32)
-	db.Exec(`INSERT INTO sessions(sid,exp) VALUES(?,?)`, sidHash(sid), time.Now().Add(12*time.Hour).Unix())
-	http.SetCookie(w, &http.Cookie{Name: "sid", Value: sid, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode,
-		Secure: os.Getenv("COOKIE_SECURE") == "1", MaxAge: 12 * 3600})
-	js(w, 200, map[string]bool{"ok": true})
-}
-
-func logoutH(w http.ResponseWriter, r *http.Request) {
-	if c, err := r.Cookie("sid"); err == nil {
-		db.Exec(`DELETE FROM sessions WHERE sid=?`, sidHash(c.Value))
-	}
-	http.SetCookie(w, &http.Cookie{Name: "sid", Path: "/", MaxAge: -1})
-	js(w, 200, map[string]bool{"ok": true})
-}
-
-func auth(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie("sid")
-		var exp int64
-		if err != nil || db.QueryRow(`SELECT exp FROM sessions WHERE sid=?`, sidHash(c.Value)).Scan(&exp) != nil || exp < time.Now().Unix() {
-			fail(w, 401, "нужен вход")
-			return
-		}
-		h(w, r)
-	}
-}
-
-// ---------- услуги, мастера, свободное время ----------
-func servicesH(w http.ResponseWriter, _ *http.Request) {
-	rows(w, `SELECT id,name,descr,price,dur FROM services WHERE active=1 ORDER BY id`)
-}
-func mastersH(w http.ResponseWriter, _ *http.Request) {
-	rows(w, `SELECT id,name,spec,COALESCE(descr,'') AS descr FROM masters WHERE active=1 ORDER BY id`)
-}
-
+// ---------- availability ----------
 func isFuture(date string, start int) bool {
 	d, err := time.ParseInLocation("2006-01-02", date, time.Local)
-	return err == nil && d.Add(time.Duration(start)*time.Minute).After(time.Now())
+	if err != nil {
+		return false
+	}
+	return d.Add(time.Duration(start) * time.Minute).After(time.Now())
 }
 
-// works: мастер работает в этот день и время, не на перерыве и не в отпуске/выходном
-func works(master int, date string, start, dur int) bool {
-	var o, c, bf, bt int
-	var days string
-	if db.QueryRow(`SELECT open_min,close_min,COALESCE(break_from,0),COALESCE(break_to,0),COALESCE(days,'0,1,2,3,4,5,6') FROM masters WHERE id=? AND active=1`,
-		master).Scan(&o, &c, &bf, &bt, &days) != nil {
-		return false
-	}
-	d, err := time.ParseInLocation("2006-01-02", date, time.Local)
-	if err != nil || !strings.Contains(","+days+",", ","+strconv.Itoa(int(d.Weekday()))+",") {
-		return false
-	}
-	if start < o || start+dur > c || (bt > bf && start < bt && start+dur > bf) {
-		return false
-	}
+// free reports whether barber is free in [start,start+dur), ignoring booking `skip`.
+func free(barber int, date string, start, dur, skip int) bool {
 	var n int
-	db.QueryRow(`SELECT COUNT(*) FROM offs WHERE master IN(0,?) AND from_date<=? AND to_date>=? AND from_min<? AND to_min>?`,
-		master, date, date, start+dur, start).Scan(&n)
+	db.QueryRow(`SELECT COUNT(*) FROM bookings WHERE barber=? AND date=? AND status!='cancelled' AND id!=? AND start<? AND start+dur>?`,
+		barber, date, skip, start+dur, start).Scan(&n)
+	if n > 0 {
+		return false
+	}
+	// закрытое время: barber=0 значит «все мастера»
+	db.QueryRow(`SELECT COUNT(*) FROM blocks WHERE date=? AND barber IN(0,?) AND from_min<? AND to_min>?`,
+		date, barber, start+dur, start).Scan(&n)
 	return n == 0
 }
 
-func free(master int, date string, start, dur, skip int) bool {
-	var n int
-	db.QueryRow(`SELECT COUNT(*) FROM bookings WHERE master=? AND date=? AND `+busy+` AND id!=? AND start<? AND start+dur>?`,
-		master, date, skip, start+dur, start).Scan(&n)
-	return n == 0
+// works reports whether [start,start+dur) fits into the barber's working hours.
+func works(barber, start, dur int) bool {
+	var o, c int
+	if db.QueryRow(`SELECT open_min,close_min FROM barbers WHERE id=?`, barber).Scan(&o, &c) != nil {
+		return false
+	}
+	return start >= o && start+dur <= c
 }
 
-// pick возвращает свободного мастера (0 — нет). master>0 — конкретный мастер.
-func pick(master int, date string, start, dur int) int {
+// pick returns a free barber id (0 if none). barber>0 means a specific master.
+func pick(barber int, date string, start, dur, skip int) int {
 	if !isFuture(date, start) {
 		return 0
 	}
-	if master > 0 {
-		if works(master, date, start, dur) && free(master, date, start, dur, 0) {
-			return master
+	if barber > 0 {
+		if works(barber, start, dur) && free(barber, date, start, dur, skip) {
+			return barber
 		}
 		return 0
 	}
-	r, _ := db.Query(`SELECT id FROM masters WHERE active=1 ORDER BY id`)
+	r, _ := db.Query(`SELECT id FROM barbers ORDER BY id`)
 	var ids []int
 	for r.Next() {
 		var id int
@@ -340,23 +226,23 @@ func pick(master int, date string, start, dur int) int {
 	}
 	r.Close()
 	for _, id := range ids {
-		if works(id, date, start, dur) && free(id, date, start, dur, 0) {
+		if works(id, start, dur) && free(id, date, start, dur, skip) {
 			return id
 		}
 	}
 	return 0
 }
 
-func serviceInfo(id int) (price, dur int, ok bool) {
-	ok = db.QueryRow(`SELECT price,dur FROM services WHERE id=? AND active=1`, id).Scan(&price, &dur) == nil
-	return
+func svcDur(id int) (int, bool) {
+	var d int
+	return d, db.QueryRow(`SELECT dur FROM services WHERE id=?`, id).Scan(&d) == nil
 }
 
 func slotsH(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	sid, _ := strconv.Atoi(q.Get("service"))
-	mid, _ := strconv.Atoi(q.Get("master"))
-	_, dur, ok := serviceInfo(sid)
+	bid, _ := strconv.Atoi(q.Get("barber"))
+	dur, ok := svcDur(sid)
 	if !ok {
 		fail(w, 400, "выберите услугу")
 		return
@@ -367,260 +253,333 @@ func slotsH(w http.ResponseWriter, r *http.Request) {
 	}
 	out := []string{}
 	for t := 0; t+dur <= 24*60; t += stepMin {
-		if pick(mid, q.Get("date"), t, dur) > 0 {
+		if pick(bid, q.Get("date"), t, dur, 0) > 0 {
 			out = append(out, hm(t))
 		}
 	}
 	js(w, 200, out)
 }
 
-// ---------- запись ----------
-func notify(text string) {
-	tok, chat := os.Getenv("TELEGRAM_BOT_TOKEN"), os.Getenv("TELEGRAM_CHAT_ID")
-	if tok == "" || chat == "" {
-		log.Println("уведомление:", text)
-		return
-	}
-	go http.PostForm("https://api.telegram.org/bot"+tok+"/sendMessage", url.Values{"chat_id": {chat}, "text": {text}})
+// ---------- booking ----------
+type req struct {
+	ID, Service, Barber int
+	Date, Time, Name, Phone string
 }
 
-const bookingSQL = `SELECT b.id,b.date,printf('%02d:%02d',b.start/60,b.start%60) AS time,b.status,b.name,b.phone,b.comment,b.price,b.token,
- s.name AS service,m.name AS master FROM bookings b JOIN services s ON s.id=b.service JOIN masters m ON m.id=b.master`
-
 func bookH(w http.ResponseWriter, r *http.Request) {
-	var q struct {
-		Service, Master                  int
-		Date, Time, Name, Phone, Comment string
-		Req                              string
-	}
+	var q req
 	if json.NewDecoder(r.Body).Decode(&q) != nil {
 		fail(w, 400, "неверный запрос")
 		return
 	}
-	phone, name := cleanPhone(q.Phone), strings.TrimSpace(q.Name)
-	if name == "" || len([]rune(name)) > 60 || !phoneRe.MatchString(phone) || len([]rune(q.Comment)) > 300 || q.Req == "" {
-		fail(w, 400, "укажите имя и корректный телефон (10–15 цифр)")
-		return
-	}
-	price, dur, ok := serviceInfo(q.Service)
-	start, err := parseHM(q.Time)
-	if !ok || err != nil {
-		fail(w, 400, "выберите услугу и время")
-		return
-	}
-	mu.Lock()
-	defer mu.Unlock()
-	var existing int // повторная отправка той же формы возвращает ту же запись
-	if db.QueryRow(`SELECT id FROM bookings WHERE req=?`, q.Req).Scan(&existing) == nil {
-		rows(w, bookingSQL+` WHERE b.id=?`, existing)
-		return
-	}
-	m := pick(q.Master, q.Date, start, dur)
-	if m == 0 {
-		fail(w, 409, "это время уже занято или недоступно — выберите другое")
-		return
-	}
-	res, err := db.Exec(`INSERT INTO bookings(service,master,date,start,dur,price,name,phone,comment,token,req) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
-		q.Service, m, q.Date, start, dur, price, name, phone, strings.TrimSpace(q.Comment), randHex(16), q.Req)
+	id, code, err := createBooking(q.Service, q.Barber, q.Date, q.Time, q.Name, q.Phone, 0)
 	if err != nil {
-		fail(w, 500, "не удалось сохранить запись")
+		fail(w, code, err.Error())
 		return
 	}
-	id, _ := res.LastInsertId()
-	notify("Новая запись (ожидает подтверждения): " + name + ", " + phone + ", " + q.Date + " " + q.Time)
 	rows(w, bookingSQL+` WHERE b.id=?`, id)
 }
 
-// ---------- управление записью клиентом по ссылке ----------
-func manageH(w http.ResponseWriter, r *http.Request) {
-	rows(w, bookingSQL+` WHERE b.token=?`, r.PathValue("token"))
+// createBooking — общая логика записи для сайта и Telegram-бота.
+func createBooking(svc, barber int, date, tm, name, phone string, chat int64) (int64, int, error) {
+	phone, name = cleanPhone(phone), strings.TrimSpace(name)
+	if name == "" || !phoneRe.MatchString(phone) {
+		return 0, 400, errors.New("укажите имя и корректный телефон (10–15 цифр)")
+	}
+	dur, ok := svcDur(svc)
+	start, err := parseHM(tm)
+	if !ok || err != nil {
+		return 0, 400, errors.New("выберите услугу и время")
+	}
+	mu.Lock()
+	b := pick(barber, date, start, dur, 0)
+	if b == 0 {
+		mu.Unlock()
+		return 0, 409, errors.New("это время уже занято или недоступно — выберите другое")
+	}
+	res, err := db.Exec(`INSERT INTO bookings(service,barber,date,start,dur,name,phone,chat) VALUES(?,?,?,?,?,?,?,?)`,
+		svc, b, date, start, dur, name, phone, chat)
+	mu.Unlock()
+	if err != nil {
+		return 0, 500, errors.New("не удалось сохранить запись")
+	}
+	id, _ := res.LastInsertId()
+	notify("Новая запись:\n" + brief(id))
+	return id, 200, nil
 }
 
-func manageCancelH(w http.ResponseWriter, r *http.Request) {
+const bookingSQL = `SELECT b.id,b.date,printf('%02d:%02d',b.start/60,b.start%60) AS time,b.status,b.name,b.phone,
+ s.name AS service,s.price,br.name AS barber,b.service AS sid,b.barber AS bid,(SELECT COUNT(*) FROM reviews rv WHERE rv.booking=b.id) AS reviewed FROM bookings b JOIN services s ON s.id=b.service JOIN barbers br ON br.id=b.barber`
+
+func myH(w http.ResponseWriter, r *http.Request) {
+	p := cleanPhone(r.URL.Query().Get("phone"))
+	if !phoneRe.MatchString(p) {
+		fail(w, 400, "введите корректный телефон")
+		return
+	}
+	rows(w, bookingSQL+` WHERE b.phone=? ORDER BY b.date DESC,b.start DESC`, p)
+}
+
+// own loads a booking that belongs to phone and can still be changed.
+func own(q req) (date string, start, svc, barber int, err error) {
+	e := db.QueryRow(`SELECT date,start,service,barber FROM bookings WHERE id=? AND phone=? AND status IN('new','confirmed')`,
+		q.ID, cleanPhone(q.Phone)).Scan(&date, &start, &svc, &barber)
+	if e != nil {
+		err = errors.New("запись не найдена или уже закрыта")
+	} else if d, _ := time.ParseInLocation("2006-01-02", date, time.Local); time.Until(d.Add(time.Duration(start)*time.Minute)) < 2*time.Hour {
+		err = errors.New("отмена и перенос возможны не позднее чем за 2 часа до визита")
+	}
+	return
+}
+
+func cancelH(w http.ResponseWriter, r *http.Request) {
+	var q req
+	json.NewDecoder(r.Body).Decode(&q)
 	mu.Lock()
 	defer mu.Unlock()
-	var id, start int
-	var date, st string
-	if db.QueryRow(`SELECT id,date,start,status FROM bookings WHERE token=?`, r.PathValue("token")).Scan(&id, &date, &start, &st) != nil {
-		fail(w, 404, "запись не найдена")
+	if _, _, _, _, err := own(q); err != nil {
+		fail(w, 400, err.Error())
 		return
 	}
-	hours, _ := strconv.Atoi(env("MIN_CANCEL_HOURS", "2"))
-	d, _ := time.ParseInLocation("2006-01-02", date, time.Local)
-	if st != "pending" && st != "confirmed" {
-		fail(w, 400, "эту запись уже нельзя отменить")
-		return
-	}
-	if time.Until(d.Add(time.Duration(start)*time.Minute)) < time.Duration(hours)*time.Hour {
-		fail(w, 400, "отмена возможна не позднее чем за "+strconv.Itoa(hours)+" ч до визита — позвоните в салон")
-		return
-	}
-	db.Exec(`UPDATE bookings SET status='cancelled_client' WHERE id=?`, id)
-	notify("Клиент отменил запись: " + date + " " + hm(start))
+	db.Exec(`UPDATE bookings SET status='cancelled' WHERE id=?`, q.ID)
+	notify("Запись отменена:\n" + brief(int64(q.ID)))
 	js(w, 200, map[string]string{"ok": "запись отменена"})
 }
 
-// ---------- администратор ----------
-func statsH(w http.ResponseWriter, _ *http.Request) {
-	today := time.Now().Format("2006-01-02")
-	month := today[:7] + "%"
-	var a, b, c, d, rd, rm, cl int
-	db.QueryRow(`SELECT COUNT(*) FROM bookings WHERE date=? AND `+busy, today).Scan(&a)
-	db.QueryRow(`SELECT COUNT(*) FROM bookings WHERE status='pending'`).Scan(&b)
-	db.QueryRow(`SELECT COUNT(*) FROM bookings WHERE status='confirmed'`).Scan(&c)
-	db.QueryRow(`SELECT COUNT(*) FROM bookings WHERE status IN('cancelled_client','cancelled_admin') AND date LIKE ?`, month).Scan(&d)
-	db.QueryRow(`SELECT COALESCE(SUM(price),0) FROM bookings WHERE status='done' AND date=?`, today).Scan(&rd)
-	db.QueryRow(`SELECT COALESCE(SUM(price),0) FROM bookings WHERE status='done' AND date LIKE ?`, month).Scan(&rm)
-	db.QueryRow(`SELECT COUNT(DISTINCT phone) FROM bookings`).Scan(&cl)
-	js(w, 200, map[string]int{"today": a, "pending": b, "confirmed": c, "cancelled_month": d, "revenue_day": rd, "revenue_month": rm, "clients": cl})
+func moveH(w http.ResponseWriter, r *http.Request) {
+	var q req
+	json.NewDecoder(r.Body).Decode(&q)
+	mu.Lock()
+	defer mu.Unlock()
+	_, _, svc, barber, err := own(q)
+	if err != nil {
+		fail(w, 400, err.Error())
+		return
+	}
+	dur, _ := svcDur(svc)
+	start, e := parseHM(q.Time)
+	if e != nil || pick(barber, q.Date, start, dur, q.ID) == 0 {
+		fail(w, 409, "это время недоступно — выберите другое")
+		return
+	}
+	db.Exec(`UPDATE bookings SET date=?,start=? WHERE id=?`, q.Date, start, q.ID)
+	notify("Запись перенесена:\n" + brief(int64(q.ID)))
+	js(w, 200, map[string]string{"ok": "запись перенесена"})
 }
 
-func adminBookingsH(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	sql := bookingSQL + ` WHERE 1=1`
-	var args []any
-	if v := q.Get("date"); v != "" {
-		sql += ` AND b.date=?`
-		args = append(args, v)
+// ---------- admin ----------
+func admin(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		pw := os.Getenv("ADMIN_PASSWORD")
+		if pw == "" || subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Admin")), []byte(pw)) != 1 {
+			fail(w, 401, "нет доступа")
+			return
+		}
+		h(w, r)
 	}
-	if v := q.Get("status"); v != "" {
-		sql += ` AND b.status=?`
-		args = append(args, v)
-	}
-	if v := strings.TrimSpace(q.Get("q")); v != "" {
-		sql += ` AND (b.name LIKE ? OR b.phone LIKE ?)`
-		args = append(args, "%"+v+"%", "%"+v+"%")
-	}
-	rows(w, sql+` ORDER BY b.date DESC,b.start LIMIT 300`, args...)
 }
 
-func adminStatusH(w http.ResponseWriter, r *http.Request) {
+func adminList(w http.ResponseWriter, r *http.Request) {
+	d := r.URL.Query().Get("date")
+	if d == "" {
+		rows(w, bookingSQL+` ORDER BY b.date DESC,b.start LIMIT 300`)
+		return
+	}
+	rows(w, bookingSQL+` WHERE b.date=? ORDER BY b.start`, d)
+}
+
+func adminStatus(w http.ResponseWriter, r *http.Request) {
 	var q struct {
 		ID     int
 		Status string
 	}
 	json.NewDecoder(r.Body).Decode(&q)
-	if !statuses[q.Status] {
+	switch q.Status {
+	case "new", "confirmed", "done", "cancelled":
+		db.Exec(`UPDATE bookings SET status=? WHERE id=?`, q.Status, q.ID)
+		js(w, 200, map[string]string{"ok": "статус обновлён"})
+	default:
 		fail(w, 400, "неизвестный статус")
-		return
 	}
-	db.Exec(`UPDATE bookings SET status=? WHERE id=?`, q.Status, q.ID)
-	js(w, 200, map[string]string{"ok": "статус обновлён"})
 }
 
-func adminServicesH(w http.ResponseWriter, _ *http.Request) {
-	rows(w, `SELECT id,name,descr,price,dur,active FROM services ORDER BY id`)
+// ---------- график: закрытые дни/часы и рабочие часы мастеров ----------
+func adminBlocks(w http.ResponseWriter, _ *http.Request) {
+	rows(w, `SELECT bl.id, bl.date, bl.from_min, bl.to_min, bl.note, COALESCE(br.name,'Все мастера') AS barber
+ FROM blocks bl LEFT JOIN barbers br ON br.id=bl.barber WHERE bl.date>=? ORDER BY bl.date, bl.from_min`,
+		time.Now().Format("2006-01-02"))
 }
 
-func adminServiceSaveH(w http.ResponseWriter, r *http.Request) {
+// adminBlock закрывает время. Пустые From/To — закрыть весь день. Barber=0 — все мастера.
+func adminBlock(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		ID, Price, Dur, Active int
-		Name, Descr          string
+		Barber           int
+		Date, From, To, Note string
 	}
 	json.NewDecoder(r.Body).Decode(&q)
-	if strings.TrimSpace(q.Name) == "" || q.Price < 0 || q.Dur < 15 || q.Dur > 480 {
-		fail(w, 400, "проверьте название, цену и длительность (15–480 мин)")
+	if _, err := time.Parse("2006-01-02", q.Date); err != nil {
+		fail(w, 400, "укажите дату")
 		return
 	}
-	if q.ID > 0 {
-		db.Exec(`UPDATE services SET name=?,descr=?,price=?,dur=?,active=? WHERE id=?`, q.Name, q.Descr, q.Price, q.Dur, q.Active, q.ID)
-	} else {
-		db.Exec(`INSERT INTO services(name,descr,price,dur,active) VALUES(?,?,?,?,?)`, q.Name, q.Descr, q.Price, q.Dur, q.Active)
+	f, t := 0, 24*60
+	if q.From != "" || q.To != "" {
+		var e1, e2 error
+		f, e1 = parseHM(q.From)
+		t, e2 = parseHM(q.To)
+		if e1 != nil || e2 != nil || t <= f {
+			fail(w, 400, "время «с» должно быть раньше времени «до»")
+			return
+		}
 	}
-	js(w, 200, map[string]string{"ok": "сохранено"})
+	if _, err := db.Exec(`INSERT INTO blocks(barber,date,from_min,to_min,note) VALUES(?,?,?,?,?)`,
+		q.Barber, q.Date, f, t, strings.TrimSpace(q.Note)); err != nil {
+		fail(w, 500, "не удалось сохранить")
+		return
+	}
+	js(w, 200, map[string]string{"ok": "закрыто"})
 }
 
-// ---------- мастера и график ----------
-func adminMastersH(w http.ResponseWriter, _ *http.Request) {
-	rows(w, `SELECT id,name,spec,COALESCE(descr,'') AS descr,open_min,close_min,COALESCE(break_from,0) AS break_from,COALESCE(break_to,0) AS break_to,
- COALESCE(days,'0,1,2,3,4,5,6') AS days,active FROM masters ORDER BY id`)
+func adminUnblock(w http.ResponseWriter, r *http.Request) {
+	var q struct{ ID int }
+	json.NewDecoder(r.Body).Decode(&q)
+	db.Exec(`DELETE FROM blocks WHERE id=?`, q.ID)
+	js(w, 200, map[string]string{"ok": "открыто"})
 }
 
-func adminMasterSaveH(w http.ResponseWriter, r *http.Request) {
+func adminHours(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		ID, Active                                        int
-		Name, Spec, Descr, Open, Close, BreakFrom, BreakTo, Days string
+		Barber      int
+		Open, Close string
 	}
 	json.NewDecoder(r.Body).Decode(&q)
 	o, e1 := parseHM(q.Open)
 	c, e2 := parseHM(q.Close)
-	if strings.TrimSpace(q.Name) == "" || e1 != nil || e2 != nil || c <= o {
-		fail(w, 400, "укажите имя и рабочие часы (начало раньше конца)")
+	if e1 != nil || e2 != nil || c <= o {
+		fail(w, 400, "начало работы должно быть раньше конца")
 		return
 	}
-	bf, bt := 0, 0
-	if q.BreakFrom != "" || q.BreakTo != "" {
-		var e3, e4 error
-		bf, e3 = parseHM(q.BreakFrom)
-		bt, e4 = parseHM(q.BreakTo)
-		if e3 != nil || e4 != nil || bt <= bf {
-			fail(w, 400, "перерыв: начало должно быть раньше конца")
-			return
-		}
-	}
-	days := strings.Split(q.Days, ",")
-	for _, d := range days {
-		if len(d) != 1 || d < "0" || d > "6" {
-			fail(w, 400, "выберите рабочие дни")
-			return
-		}
-	}
-	if q.ID > 0 {
-		db.Exec(`UPDATE masters SET name=?,spec=?,descr=?,open_min=?,close_min=?,break_from=?,break_to=?,days=?,active=? WHERE id=?`,
-			q.Name, q.Spec, q.Descr, o, c, bf, bt, q.Days, q.Active, q.ID)
-	} else {
-		db.Exec(`INSERT INTO masters(name,spec,descr,open_min,close_min,break_from,break_to,days,active) VALUES(?,?,?,?,?,?,?,?,?)`,
-			q.Name, q.Spec, q.Descr, o, c, bf, bt, q.Days, q.Active)
-	}
-	js(w, 200, map[string]string{"ok": "сохранено"})
+	db.Exec(`UPDATE barbers SET open_min=?, close_min=? WHERE id=?`, o, c, q.Barber)
+	js(w, 200, map[string]string{"ok": "часы сохранены"})
 }
 
-func adminOffsH(w http.ResponseWriter, _ *http.Request) {
-	rows(w, `SELECT o.id,o.master,COALESCE(m.name,'Весь салон') AS who,o.from_date,o.to_date,o.from_min,o.to_min,o.note
- FROM offs o LEFT JOIN masters m ON m.id=o.master WHERE o.to_date>=? ORDER BY o.from_date`, time.Now().Format("2006-01-02"))
+// ---------- отзывы ----------
+func reviewsH(w http.ResponseWriter, _ *http.Request) {
+	rows(w, `SELECT r.id, r.name, r.stars, r.text, substr(r.created,1,10) AS date, br.name AS barber
+ FROM reviews r JOIN barbers br ON br.id=r.barber ORDER BY r.id DESC LIMIT 30`)
 }
 
-// adminOffAddH: выходной, отпуск или блокировка времени. Master=0 — весь салон.
-func adminOffAddH(w http.ResponseWriter, r *http.Request) {
+// reviewH: отзыв можно оставить только на завершённую запись и только один раз.
+func reviewH(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		Master                         int
-		From, To, TimeFrom, TimeTo, Note string
+		ID, Stars   int
+		Phone, Text string
 	}
-	json.NewDecoder(r.Body).Decode(&q)
-	_, e1 := time.Parse("2006-01-02", q.From)
-	_, e2 := time.Parse("2006-01-02", q.To)
-	if q.To == "" {
-		q.To, e2 = q.From, nil
-	}
-	if e1 != nil || e2 != nil || q.To < q.From {
-		fail(w, 400, "укажите даты (конец не раньше начала)")
+	if json.NewDecoder(r.Body).Decode(&q) != nil || q.Stars < 1 || q.Stars > 5 {
+		fail(w, 400, "поставьте оценку от 1 до 5")
 		return
 	}
-	f, t := 0, 24*60
-	if q.TimeFrom != "" || q.TimeTo != "" {
-		var e3, e4 error
-		f, e3 = parseHM(q.TimeFrom)
-		t, e4 = parseHM(q.TimeTo)
-		if e3 != nil || e4 != nil || t <= f {
-			fail(w, 400, "время «с» должно быть раньше «до»")
-			return
-		}
+	text := strings.TrimSpace(q.Text)
+	if len([]rune(text)) > 500 {
+		fail(w, 400, "отзыв не длиннее 500 символов")
+		return
 	}
-	db.Exec(`INSERT INTO offs(master,from_date,to_date,from_min,to_min,note) VALUES(?,?,?,?,?,?)`, q.Master, q.From, q.To, f, t, strings.TrimSpace(q.Note))
-	js(w, 200, map[string]string{"ok": "добавлено"})
+	var barber int
+	var name string
+	if db.QueryRow(`SELECT barber,name FROM bookings WHERE id=? AND phone=? AND status='done'`,
+		q.ID, cleanPhone(q.Phone)).Scan(&barber, &name) != nil {
+		fail(w, 400, "отзыв можно оставить только после завершённого визита")
+		return
+	}
+	first := "Гость" // показываем только имя, без фамилии и телефона
+	if f := strings.Fields(name); len(f) > 0 {
+		first = f[0]
+	}
+	if _, err := db.Exec(`INSERT INTO reviews(booking,barber,name,stars,text) VALUES(?,?,?,?,?)`,
+		q.ID, barber, first, q.Stars, text); err != nil {
+		fail(w, 409, "на этот визит отзыв уже оставлен")
+		return
+	}
+	js(w, 200, map[string]string{"ok": "спасибо за отзыв"})
 }
 
-func adminOffDelH(w http.ResponseWriter, r *http.Request) {
+func adminReviewDelete(w http.ResponseWriter, r *http.Request) {
 	var q struct{ ID int }
 	json.NewDecoder(r.Body).Decode(&q)
-	db.Exec(`DELETE FROM offs WHERE id=?`, q.ID)
+	db.Exec(`DELETE FROM reviews WHERE id=?`, q.ID)
 	js(w, 200, map[string]string{"ok": "удалено"})
 }
 
-// clientIP: за прокси хостинга настоящий адрес клиента приходит в X-Forwarded-For
-func clientIP(r *http.Request) string {
-	if x := r.Header.Get("X-Forwarded-For"); x != "" {
-		return strings.TrimSpace(strings.Split(x, ",")[0])
+// ---------- товары и резерв «заберу при визите» ----------
+func productsH(w http.ResponseWriter, _ *http.Request) {
+	rows(w, `SELECT id,name,descr,price FROM products ORDER BY id`)
+}
+
+func reserveH(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		Product     int
+		Name, Phone string
 	}
-	return strings.Split(r.RemoteAddr, ":")[0]
+	json.NewDecoder(r.Body).Decode(&q)
+	phone, name := cleanPhone(q.Phone), strings.TrimSpace(q.Name)
+	if name == "" || !phoneRe.MatchString(phone) {
+		fail(w, 400, "укажите имя и корректный телефон (10–15 цифр)")
+		return
+	}
+	var pn string
+	if db.QueryRow(`SELECT name FROM products WHERE id=?`, q.Product).Scan(&pn) != nil {
+		fail(w, 400, "товар не найден")
+		return
+	}
+	var n int
+	db.QueryRow(`SELECT COUNT(*) FROM reserves WHERE phone=? AND status='new'`, phone).Scan(&n)
+	if n >= 5 {
+		fail(w, 429, "слишком много отложенных товаров — сначала заберите прежние")
+		return
+	}
+	if _, err := db.Exec(`INSERT INTO reserves(product,name,phone) VALUES(?,?,?)`, q.Product, name, phone); err != nil {
+		fail(w, 500, "не удалось сохранить")
+		return
+	}
+	notify("Резерв товара: " + pn + "\n" + name + ", " + phone)
+	js(w, 200, map[string]string{"ok": "товар отложен"})
+}
+
+func adminReserves(w http.ResponseWriter, _ *http.Request) {
+	rows(w, `SELECT r.id, r.name, r.phone, r.status, substr(r.created,1,10) AS date, COALESCE(p.name,'(удалён)') AS product
+ FROM reserves r LEFT JOIN products p ON p.id=r.product ORDER BY r.status='new' DESC, r.id DESC LIMIT 100`)
+}
+
+func adminReserveStatus(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		ID     int
+		Status string
+	}
+	json.NewDecoder(r.Body).Decode(&q)
+	if q.Status != "new" && q.Status != "done" && q.Status != "cancelled" {
+		fail(w, 400, "неизвестный статус")
+		return
+	}
+	db.Exec(`UPDATE reserves SET status=? WHERE id=?`, q.Status, q.ID)
+	js(w, 200, map[string]string{"ok": "обновлено"})
+}
+
+func adminProductAdd(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		Name, Descr string
+		Price       int
+	}
+	json.NewDecoder(r.Body).Decode(&q)
+	if strings.TrimSpace(q.Name) == "" || q.Price < 0 {
+		fail(w, 400, "укажите название и цену")
+		return
+	}
+	db.Exec(`INSERT INTO products(name,descr,price) VALUES(?,?,?)`, strings.TrimSpace(q.Name), strings.TrimSpace(q.Descr), q.Price)
+	js(w, 200, map[string]string{"ok": "добавлено"})
+}
+
+func adminProductDel(w http.ResponseWriter, r *http.Request) {
+	var q struct{ ID int }
+	json.NewDecoder(r.Body).Decode(&q)
+	db.Exec(`DELETE FROM products WHERE id=?`, q.ID)
+	js(w, 200, map[string]string{"ok": "удалено"})
 }
